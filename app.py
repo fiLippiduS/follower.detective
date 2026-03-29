@@ -14,38 +14,20 @@ st.set_page_config(page_title="InstaDetective Elite", page_icon="💎", layout="
 LINK_UNFOLLOWERS = "https://www.profitablecpmratenetwork.com/uizvppk2?key=f0a721816237e7835d3ea630c5d8e33e"
 LINK_FAN_SEGRETI = "https://www.profitablecpmratenetwork.com/shd3c1hdud?key=4d5754de72adc6dc7c524a6a47c574e5"
 
-if 'unf_unlocked' not in st.session_state: st.session_state.unf_unlocked = False
-if 'fan_unlocked' not in st.session_state: st.session_state.fan_unlocked = False
+# --- PERSISTENZA DATI (CACHE) ---
+@st.cache_data(show_spinner=False)
+def process_zip(file_bytes):
+    with zipfile.ZipFile(file_bytes, 'r') as z:
+        fols, fings = set(), set()
+        for path in z.namelist():
+            if path.lower().endswith('followers_1.json'):
+                with z.open(path) as f: fols.update(raw_text_extract(f.read()))
+            elif path.lower().endswith('following.json') and 'hashtag' not in path.lower():
+                with z.open(path) as f: fings.update(raw_text_extract(f.read()))
+        return fols, fings
 
-# --- DESIGN SYSTEM ---
-st.markdown("""
-    <style>
-    #MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}
-    [data-testid="stSidebar"] {display: none;}
-    html, body, [class*="css"] { font-family: 'Inter', sans-serif; background-color: #000; color: #f5f5f7; }
-    .main-container { max-width: 800px; margin: auto; padding: 10px; }
-    .section-card { background: #0a0a0a; padding: 25px; border-radius: 20px; border: 1px solid #1a1a1a; margin-bottom: 20px; }
-    
-    .ad-overlay-card {
-        background: #111;
-        border: 2px solid #d4af37;
-        padding: 30px;
-        border-radius: 20px;
-        text-align: center;
-        margin: 20px 0;
-    }
-    
-    .timer-text { font-size: 3rem; font-weight: 800; color: #d4af37; margin: 10px 0; }
-    .stButton>button { border-radius: 12px !important; font-weight: 800 !important; width: 100% !important; background: #d4af37 !important; color: black !important; border: none !important; padding: 15px; }
-    
-    .btn-secondary {
-        background: #222 !important; color: #d4af37 !important; border: 1px solid #d4af37 !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-def raw_text_extract(file_content):
-    text = file_content.decode('utf-8', errors='ignore')
+def raw_text_extract(text_bytes):
+    text = text_bytes.decode('utf-8', errors='ignore')
     potentials = re.findall(r'"([^"]*)"', text)
     found = set()
     blacklist = {'value', 'href', 'timestamp', 'string_list_data', 'relationships_following', 'title', 'true', 'false', 'none'}
@@ -55,80 +37,97 @@ def raw_text_extract(file_content):
             found.add(clean)
     return found
 
-st.markdown('<div class="main-container">', unsafe_allow_html=True)
-st.markdown("<h1 style='text-align:center; color:#d4af37; font-weight:800; margin-bottom:0;'>InstaDetective</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center; opacity:0.5; font-size:0.7em; margin-bottom:40px;'>MONETIZED ANALYTICS</p>", unsafe_allow_html=True)
+# --- INIZIALIZZAZIONE STATI ---
+if 'unf_unlocked' not in st.session_state: st.session_state.unf_unlocked = False
+if 'fan_unlocked' not in st.session_state: st.session_state.fan_unlocked = False
 
-# CARICAMENTO
+# --- DESIGN ---
+st.markdown("""
+    <style>
+    #MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}
+    html, body, [class*="css"] { font-family: 'Inter', sans-serif; background-color: #000; color: #f5f5f7; }
+    .main-container { max-width: 800px; margin: auto; padding: 10px; }
+    .section-card { background: #0a0a0a; padding: 20px; border-radius: 20px; border: 1px solid #1a1a1a; margin-bottom: 15px; }
+    .stButton>button { border-radius: 12px !important; font-weight: 800 !important; width: 100% !important; background: #d4af37 !important; color: black !important; height: 55px; }
+    .timer-box { text-align: center; padding: 40px; border: 2px solid #d4af37; border-radius: 20px; background: #111; margin: 20px 0; }
+    .timer-val { font-size: 4rem; font-weight: 900; color: #d4af37; }
+    </style>
+    """, unsafe_allow_html=True)
+
+st.markdown('<div class="main-container">', unsafe_allow_html=True)
+st.markdown("<h1 style='text-align:center; color:#d4af37; margin-bottom:0;'>InstaDetective</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center; opacity:0.5; font-size:0.7em; margin-bottom:30px;'>ADVANCED ANALYTICS & REWARDS</p>", unsafe_allow_html=True)
+
+# 1. CARICAMENTO (Sempre visibile)
 st.markdown('<div class="section-card">', unsafe_allow_html=True)
-uploaded_file = st.file_uploader("📂 Carica lo ZIP di Instagram", type="zip")
+c1, c2 = st.columns(2)
+with c1: uploaded_file = st.file_uploader("📂 ZIP Instagram", type="zip")
+with c2: historical_file = st.file_uploader("⏳ Snapshot .insta", type="insta")
 st.markdown('</div>', unsafe_allow_html=True)
 
 if uploaded_file:
-    try:
-        with zipfile.ZipFile(uploaded_file, 'r') as z:
-            fols, fings = set(), set()
-            for path in z.namelist():
-                if path.lower().endswith('followers_1.json'):
-                    with z.open(path) as f: fols.update(raw_text_extract(f.read()))
-                elif path.lower().endswith('following.json') and 'hashtag' not in path.lower():
-                    with z.open(path) as f: fings.update(raw_text_extract(f.read()))
+    fols, fings = process_zip(uploaded_file)
+    non_ricambiano = sorted(list(fings - fols))
+    fan = sorted(list(fols - fings))
 
-            if fings and fols:
-                non_ricambiano = sorted(list(fings - fols))
-                fan = sorted(list(fols - fings))
+    # --- LOGICA STORICO ---
+    if historical_file:
+        old_data = json.load(historical_file)
+        old_fols = set(old_data.get("followers", []))
+        persi = sorted(list(old_fols - fols))
+        if persi:
+            st.error(f"🚨 {len(persi)} utenti ti hanno rimosso il follow!")
+        else:
+            st.success("✅ Nessun nuovo unfollower rispetto allo snapshot.")
 
-                t1, t2 = st.tabs(["📉 UNFOLLOWERS", "👑 FAN (PRO)"])
+    st.write("---")
+    t1, t2, t3 = st.tabs(["📉 UNFOLLOWERS", "👑 FAN (PRO)", "💾 SALVA"])
 
-                # --- LOGICA SBLOCCO OTTIMIZZATA ---
-                def handle_unlock(label, link, session_key):
-                    if not st.session_state[session_key]:
-                        st.markdown(f"""
-                        <div class="ad-overlay-card">
-                            <h3 style="color:#d4af37;">🔒 {label}</h3>
-                            <p style="font-size:0.9em;">Per sbloccare la lista gratuitamente:</p>
-                            <ol style="text-align:left; display:inline-block; font-size:0.8em; margin-bottom:20px;">
-                                <li>Clicca il tasto oro qui sotto (apre la pubblicità).</li>
-                                <li><b>Torna subito su questa pagina</b>.</li>
-                                <li>Attendi il termine del countdown.</li>
-                            </ol>
-                            <a href="{link}" target="_blank" style="text-decoration:none;">
-                                <button style="background:#d4af37; color:black; border:none; padding:15px; width:100%; border-radius:10px; font-weight:bold; cursor:pointer;">1. CLICCA E GUARDA ADS</button>
-                            </a>
-                        </div>
-                        """, unsafe_allow_html=True)
-                        
-                        if st.button("2. HO CLICCATO, AVVIA CONTEGGIO", key="btn_"+session_key):
-                            placeholder = st.empty()
-                            for i in range(30, 0, -1):
-                                with placeholder.container():
-                                    st.markdown(f'<div class="timer-text">{i}s</div>', unsafe_allow_html=True)
-                                    st.progress( (30-i)/30 )
-                                    st.write("⏳ Verifica interazione in corso... resta qui!")
-                                time.sleep(1)
-                            st.session_state[session_key] = True
-                            st.rerun()
-                        return False
-                    return True
+    # --- FUNZIONE DI SBLOCCO CON TIMER INTEGRATO ---
+    def render_tab_content(data_list, session_key, link, price):
+        if not st.session_state[session_key]:
+            st.markdown(f"""
+                <div style="text-align:center; padding:20px;">
+                    <h3>🔒 Contenuto Protetto ({len(data_list)} profili)</h3>
+                    <p style="opacity:0.7;">Scegli come accedere ai dati:</p>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            pay_col, ad_col = st.columns(2)
+            with pay_col:
+                st.markdown(f'<a href="https://paypal.me/TUOUSER/{price}" target="_blank" style="text-decoration:none;"><button style="width:100%; padding:15px; background:#d4af37; color:black; border-radius:12px; font-weight:bold; border:none; cursor:pointer;">PAGA {price}€</button></a>', unsafe_allow_html=True)
+            
+            with ad_col:
+                if st.button(f"📺 SBLOCCA GRATIS", key="btn_"+session_key):
+                    # Step 1: Apre pubblicità in nuova scheda
+                    components.html(f"<script>window.open('{link}', '_blank');</script>", height=0)
+                    
+                    # Step 2: Avvia timer nella scheda corrente
+                    placeholder = st.empty()
+                    for i in range(30, -1, -1):
+                        with placeholder.container():
+                            st.markdown(f"""
+                                <div class="timer-box">
+                                    <p>SBLOCCO IN CORSO...</p>
+                                    <div class="timer-val">{i}s</div>
+                                    <p style="font-size:0.8em; opacity:0.6;">Interagisci con la pubblicità nell'altra scheda<br>per convalidare l'accesso.</p>
+                                </div>
+                            """, unsafe_allow_html=True)
+                            st.progress((30-i)/30)
+                        time.sleep(1)
+                    st.session_state[session_key] = True
+                    st.rerun()
+        else:
+            st.success("✅ Accesso Autorizzato")
+            st.dataframe(pd.DataFrame(data_list, columns=["Username"]), use_container_width=True)
 
-                with t1:
-                    if handle_unlock(f"Unfollowers ({len(non_ricambiano)})", LINK_UNFOLLOWERS, 'unf_unlocked'):
-                        st.success("✅ Lista Sbloccata")
-                        st.dataframe(pd.DataFrame(non_ricambiano, columns=["Username"]), use_container_width=True)
+    with t1: render_tab_content(non_ricambiano, 'unf_unlocked', LINK_UNFOLLOWERS, "0.99")
+    with t2: render_tab_content(fan, 'fan_unlocked', LINK_FAN_SEGRETI, "0.99")
+    with t3:
+        snap = {"date": datetime.now().strftime("%Y-%m-%d"), "followers": list(fols)}
+        st.download_button("📥 SCARICA SNAPSHOT PER IL FUTURO", json.dumps(snap), "mio.insta")
 
-                with t2:
-                    if handle_unlock(f"Fan Segreti ({len(fan)})", LINK_FAN_SEGRETI, 'fan_unlocked'):
-                        st.success("✅ Lista Sbloccata")
-                        st.dataframe(pd.DataFrame(fan, columns=["Username"]), use_container_width=True)
-
-    except Exception as e:
-        st.error("Errore nel caricamento.")
-
-# FOOTER ADS (BANNER SEMPRE VISIBILE)
+# BANNER FISSO FOOTER
 st.write("---")
-components.html("""
-    <div style="display:flex; justify-content:center;">
-        <script type='text/javascript' src='https://pl29012352.profitablecpmratenetwork.com/e9/80/a8/e980a836caa023115b0fd62679088279.js'></script>
-    </div>
-""", height=250)
+components.html("""<div style="display:flex; justify-content:center;"><script type='text/javascript' src='https://pl29012352.profitablecpmratenetwork.com/e9/80/a8/e980a836caa023115b0fd62679088279.js'></script></div>""", height=250)
 st.markdown('</div>', unsafe_allow_html=True)
