@@ -5,30 +5,70 @@ import pandas as pd
 import re
 import plotly.express as px
 
-# Configurazione Pagina
-st.set_page_config(page_title="InstaDetective Business", page_icon="💰", layout="wide")
+# --- CONFIGURAZIONE INTERFACCIA ---
+st.set_page_config(page_title="InstaDetective Elite", page_icon="💎", layout="wide")
 
-# CSS Elite con accenti Oro per la monetizzazione
+# --- CSS PROFESSIONALE & BLOCCO MENU ---
 st.markdown("""
     <style>
-    .stApp { background: #0e1117; color: white; }
-    .main-box {
+    /* Nasconde il menu Streamlit e il footer per privacy */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    
+    /* Font e Sfondo */
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700&display=swap');
+    
+    html, body, [class*="css"] {
+        font-family: 'Montserrat', sans-serif;
+        background-color: #050505;
+        color: #FFFFFF;
+    }
+
+    .main-card {
         background: rgba(255, 255, 255, 0.03);
-        padding: 30px;
-        border-radius: 20px;
-        border: 1px solid #d4af37;
-        margin-bottom: 20px;
-    }
-    .money-box {
-        background: linear-gradient(135deg, #d4af37 0%, #f9d976 100%);
-        padding: 20px;
-        border-radius: 15px;
-        color: #1a1a1a;
-        font-weight: bold;
+        padding: 40px;
+        border-radius: 30px;
+        border: 1px solid rgba(212, 175, 55, 0.2);
+        backdrop-filter: blur(20px);
         text-align: center;
-        margin-top: 20px;
     }
-    .stMetric { border: 1px solid #d4af37 !important; border-radius: 10px !important; }
+
+    .stMetric {
+        background: rgba(212, 175, 55, 0.05) !important;
+        border: 1px solid rgba(212, 175, 55, 0.3) !important;
+        border-radius: 20px !important;
+        padding: 20px !important;
+    }
+
+    /* Pulsanti Eleganti */
+    .stButton>button {
+        background: linear-gradient(135deg, #d4af37 0%, #aa8928 100%) !important;
+        color: black !important;
+        font-weight: 700 !important;
+        border-radius: 50px !important;
+        border: none !important;
+        padding: 10px 25px !important;
+        transition: 0.3s;
+    }
+    
+    .stButton>button:hover {
+        transform: scale(1.05);
+        box-shadow: 0 10px 20px rgba(212, 175, 55, 0.3);
+    }
+
+    /* Tabs Custom */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 20px;
+        background-color: transparent;
+    }
+
+    .stTabs [data-baseweb="tab"] {
+        height: 50px;
+        background-color: rgba(255,255,255,0.05);
+        border-radius: 10px 10px 0 0;
+        color: white;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -46,30 +86,30 @@ def raw_text_extract(file_content):
 
 # --- SIDEBAR MONETIZZAZIONE ---
 with st.sidebar:
-    st.title("💰 Supporta il Progetto")
+    st.image("https://cdn-icons-png.flaticon.com/512/1053/1053210.png", width=100)
+    st.title("Premium Support")
+    st.write("Sostieni lo sviluppo di tool sicuri e senza tracciamento.")
     st.markdown("""
-    <div style="background: #262730; padding: 15px; border-radius: 10px; border-left: 5px solid #d4af37;">
-    Ti piace questo tool? Aiutaci a mantenerlo attivo e senza pubblicità invasiva!
-    </div>
+        <a href="https://www.paypal.me/TUO_USER" target="_blank">
+            <button style="width:100%; border-radius:50px; background:#d4af37; border:none; color:black; padding:10px; font-weight:bold; cursor:pointer;">
+                ☕ Offrimi un caffè
+            </button>
+        </a>
     """, unsafe_allow_html=True)
-    
-    # Inserisci qui il tuo link PayPal o BuyMeACoffee
-    st.markdown("[☕ Offrimi un caffè su PayPal](https://www.paypal.me/TUO_USER)")
-    
     st.write("---")
-    st.subheader("🛡️ Privacy Garantita")
-    st.caption("Nessuna password richiesta. Analizziamo solo i dati ufficiali scaricati da te.")
+    st.caption("Versione Gold v4.5 | 2026")
 
-# --- MAIN UI ---
-st.title("💎 InstaDetective Elite Pro")
-st.write("Versione 4.0 - Analisi Avanzata & Business")
+# --- MAIN PAGE ---
+st.title("💎 Analisi Account Elite")
+st.markdown("##### Il metodo più sicuro per monitorare le tue connessioni social senza condividere password.")
 
-st.markdown('<div class="main-box">', unsafe_allow_html=True)
-uploaded_file = st.file_uploader("Trascina qui lo ZIP dei tuoi dati Instagram", type="zip")
-st.markdown('</div>', unsafe_allow_html=True)
+with st.container():
+    st.markdown('<div class="main-card">', unsafe_allow_html=True)
+    uploaded_file = st.file_uploader("", type="zip", help="Trascina qui il file JSON scaricato da Instagram")
+    st.markdown('</div>', unsafe_allow_html=True)
 
 if uploaded_file:
-    with st.spinner("Analisi dei dati in corso..."):
+    with st.spinner("Elaborazione dei metadati in corso..."):
         try:
             with zipfile.ZipFile(uploaded_file, 'r') as z:
                 fols, fings = set(), set()
@@ -81,51 +121,62 @@ if uploaded_file:
                         with z.open(path) as f: fings.update(raw_text_extract(f.read()))
 
                 if fings and fols:
-                    # LOGICA BUSINESS
-                    non_ricambiano = sorted(list(fings - fols)) # Chi seguo ma non mi segue
-                    fan = sorted(list(fols - fings))           # Chi mi segue ma non seguo (FAN)
-                    comuni = fings.intersection(fols)          # Amicizie reciproche
+                    non_ricambiano = sorted(list(fings - fols))
+                    fan = sorted(list(fols - fings))
+                    comuni = fings.intersection(fols)
 
-                    # Metriche
+                    # Statistiche High-Level
+                    st.write("###")
                     c1, c2, c3, c4 = st.columns(4)
                     c1.metric("Seguiti", len(fings))
                     c2.metric("Followers", len(fols))
-                    c3.metric("Non Ricambiano", len(non_ricambiano), delta_color="inverse")
-                    c4.metric("Tuoi Fan", len(fan))
+                    c3.metric("Non Ricambiano", len(non_ricambiano))
+                    c4.metric("Fan", len(fan))
 
-                    tab1, tab2, tab3 = st.tabs(["📉 Unfollowers", "⭐ Tuoi Fan", "📊 Analisi"])
+                    st.write("###")
+                    
+                    tab1, tab2, tab3 = st.tabs(["📉 Analisi Unfollowers", "⭐ Elenco Fan", "📊 Report Grafico"])
 
                     with tab1:
-                        st.subheader("Chi non ricambia il tuo follow")
                         if non_ricambiano:
-                            st.table(pd.DataFrame(non_ricambiano, columns=["Username"]))
-                            st.download_button("📥 Scarica Lista Nera", "\n".join(non_ricambiano), "unfollowers.txt")
-                        else: st.success("Grande! Ti seguono tutti.")
+                            st.write("I seguenti utenti non ricambiano il tuo interesse:")
+                            df_unf = pd.DataFrame(non_ricambiano, columns=["Nome Utente"])
+                            st.dataframe(df_unf, use_container_width=True, height=400)
+                            
+                            csv = df_unf.to_csv(index=False).encode('utf-8')
+                            st.download_button("Esporta Elenco (.csv)", csv, "unfollowers.csv", "text/csv")
+                        else:
+                            st.balloons()
+                            st.success("Tutte le persone che segui ricambiano il follow.")
 
                     with tab2:
-                        st.subheader("Persone che ti seguono e che tu non segui")
                         if fan:
-                            st.table(pd.DataFrame(fan, columns=["Username"]))
-                            st.info("Questi sono i tuoi 'Fan'. Potresti voler ricambiare il follow!")
-                        else: st.write("Non hai fan non ricambiati al momento.")
+                            st.write("Questi utenti ti seguono, ma tu non li hai ancora ricambiati:")
+                            st.dataframe(pd.DataFrame(fan, columns=["Nome Utente"]), use_container_width=True, height=400)
+                        else:
+                            st.write("Non hai fan da mostrare.")
 
                     with tab3:
-                        st.subheader("Rapporto Relazioni")
                         fig = px.pie(
                             values=[len(comuni), len(non_ricambiano), len(fan)],
-                            names=['Amici Reciproci', 'Non Ricambiano', 'Tuoi Fan'],
-                            color_discrete_sequence=['#00d1b2', '#e94560', '#f9d976'],
-                            hole=0.5
+                            names=['Reciproco', 'Unfollowers', 'Fan'],
+                            color_discrete_sequence=['#2ecc71', '#e74c3c', '#f1c40f'],
+                            hole=0.6
                         )
-                        fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="white")
+                        fig.update_layout(
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            plot_bgcolor='rgba(0,0,0,0)',
+                            font_color="white",
+                            margin=dict(t=0, b=0, l=0, r=0)
+                        )
                         st.plotly_chart(fig, use_container_width=True)
 
-        except Exception as e:
-            st.error(f"Errore tecnico: {e}")
+        except Exception:
+            st.error("Si è verificato un errore durante l'analisi. Assicurati che il file sia un archivio Instagram valido.")
 
-# Footer Monetizzazione
 st.markdown("""
-    <div class="money-box">
-        🚀 Vuoi funzioni extra? Supporta lo sviluppo con una piccola donazione!
+    <div style="text-align:center; padding: 50px; opacity: 0.5; font-size: 0.8em;">
+        I dati vengono elaborati esclusivamente nel tuo browser. Nessun profilo o file viene salvato sui nostri sistemi.<br>
+        InstaDetective Elite &copy; 2026
     </div>
     """, unsafe_allow_html=True)
