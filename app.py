@@ -9,13 +9,15 @@ from datetime import datetime
 # --- CONFIGURAZIONE ---
 st.set_page_config(page_title="InstaDetective Elite", page_icon="💎", layout="wide")
 
-# --- DESIGN SYSTEM MOBILE-OPTIMIZED ---
+# --- DESIGN SYSTEM ULTRA-RESPONSIVE ---
 st.markdown("""
     <style>
+    /* Rimozione elementi di sistema per pulizia totale */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
-    
+    [data-testid="stSidebar"] {display: none;} /* Eliminiamo la sidebar problematica */
+
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
     
     html, body, [class*="css"] {
@@ -24,55 +26,75 @@ st.markdown("""
         color: #f5f5f7;
     }
 
-    /* Ottimizzazione per Schermi Piccoli */
-    @media (max-width: 768px) {
-        .hero-card { padding: 20px !important; border-radius: 20px !important; }
-        .stMetric { margin-bottom: 10px !important; }
-        h1 { font-size: 2.2em !important; }
+    /* Container Principale Adattivo */
+    .main-container {
+        max-width: 900px;
+        margin: auto;
+        padding: 20px;
     }
 
     .hero-card {
         background: linear-gradient(145deg, #121212, #000000);
-        padding: 40px;
-        border-radius: 30px;
+        padding: 30px;
+        border-radius: 25px;
         border: 1px solid rgba(212, 175, 55, 0.2);
         text-align: center;
-        margin-bottom: 20px;
+        margin-bottom: 25px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     }
 
     .premium-card {
         background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(0,0,0,1) 100%);
         padding: 30px;
-        border-radius: 25px;
+        border-radius: 20px;
         border: 1px solid #d4af37;
         text-align: center;
+        margin: 20px 0;
     }
 
     .stButton>button {
         width: 100% !important;
-        border-radius: 12px !important;
-        padding: 12px !important;
-        font-weight: 700 !important;
+        border-radius: 15px !important;
+        padding: 15px !important;
+        font-weight: 800 !important;
+        background: #d4af37 !important;
+        color: black !important;
+        border: none !important;
+        text-transform: uppercase;
+        letter-spacing: 1px;
     }
 
-    .instruction-step {
+    /* Tab Design Professionale */
+    .stTabs [data-baseweb="tab-list"] {
+        display: flex;
+        justify-content: center;
+        gap: 5px;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        font-size: 0.8em;
+        font-weight: 600;
+        padding: 10px 15px;
+    }
+
+    .guide-step {
         background: #111;
-        padding: 10px;
-        border-radius: 10px;
+        padding: 12px;
+        border-radius: 12px;
         margin-bottom: 8px;
         border: 1px solid #222;
-        font-size: 0.8em;
+        font-size: 0.85em;
+        text-align: left;
     }
-
-    /* Alert Unfollower Mobile */
+    
     .unfollow-alert {
         background: rgba(231, 76, 60, 0.1);
         border: 1px solid #e74c3c;
-        padding: 15px;
+        padding: 20px;
         border-radius: 15px;
-        margin-bottom: 20px;
         color: #ff4b4b;
-        font-size: 0.9em;
+        text-align: center;
+        margin-bottom: 20px;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -89,37 +111,22 @@ def raw_text_extract(file_content):
             found.add(clean)
     return found
 
-# --- SIDEBAR (MOBILE DRAWER) ---
-with st.sidebar:
-    st.markdown("<h2 style='color:#d4af37; text-align:center;'>ELITE PROTOCOL</h2>", unsafe_allow_html=True)
-    
-    st.markdown(f"""
-        <a href="https://www.paypal.me/TUO_USER/1.29" target="_blank" style="text-decoration:none;">
-            <div style="background:#d4af37; color:#000; padding:15px; border-radius:12px; text-align:center; font-weight:800;">
-                SBLOCCA INSIGHTS PRO
-            </div>
-        </a>
-    """, unsafe_allow_html=True)
-    
-    st.write("###")
-    st.markdown("#### ⏳ STORICO")
-    historical_file = st.file_uploader("Carica Snapshot .insta", type="insta")
-    
-    st.write("---")
-    st.markdown("#### GUIDA RAPIDA")
-    for s in ["1. Impostazioni IG", "2. Centro Account", "3. Scarica Info", "4. Follower/Seguiti", "5. Formato JSON"]:
-        st.markdown(f"<div class='instruction-step'>{s}</div>", unsafe_allow_html=True)
+# --- UI START ---
+st.markdown('<div class="main-container">', unsafe_allow_html=True)
 
-# --- CORPO PRINCIPALE ---
-st.markdown("<h1 style='text-align:center; font-weight:800; margin-bottom:0;'>InstaDetective</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center; opacity:0.4; letter-spacing:2px; font-size:0.8em; margin-bottom:30px;'>SECURITY PROTOCOL v5.0</p>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align:center; font-weight:800; font-size:2.8em; margin-bottom:5px;'>InstaDetective</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center; opacity:0.4; letter-spacing:3px; font-size:0.7em; margin-bottom:30px;'>ELITE SECURITY INTERFACE</p>", unsafe_allow_html=True)
 
+# 1. SEZIONE CARICAMENTO (Sempre visibile)
 st.markdown('<div class="hero-card">', unsafe_allow_html=True)
-uploaded_file = st.file_uploader("Carica lo ZIP aggiornato", type="zip", label_visibility="collapsed")
+uploaded_file = st.file_uploader("Carica lo ZIP di Instagram", type="zip", label_visibility="collapsed")
+if not uploaded_file:
+    st.markdown("<p style='opacity:0.5; font-size:0.9em;'>Trascina il file ZIP o caricalo dalla galleria</p>", unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
+# 2. SEZIONE ANALISI
 if uploaded_file:
-    with st.spinner("Analisi in corso..."):
+    with st.spinner("Analisi crittografica..."):
         try:
             with zipfile.ZipFile(uploaded_file, 'r') as z:
                 fols, fings = set(), set()
@@ -135,50 +142,70 @@ if uploaded_file:
                     fan = sorted(list(fols - fings))
                     comuni = fings.intersection(fols)
 
-                    # Alert Storico (Responsive)
-                    if historical_file:
-                        old_data = json.load(historical_file)
-                        old_fols = set(old_data.get("followers", []))
-                        persi = sorted(list(old_fols - fols))
-                        if persi:
-                            st.markdown(f'<div class="unfollow-alert">🚨 {len(persi)} nuovi unfollowers rilevati!<br><small>{", ".join(persi)}</small></div>', unsafe_allow_html=True)
-                        else:
-                            st.success("Nessun nuovo unfollower.")
-
-                    # Dashboard Metriche (Auto-stacking su mobile)
-                    m1, m2 = st.columns(2)
-                    m1.metric("Seguiti", len(fings))
-                    m2.metric("Followers", len(fols))
-                    
-                    m3, m4 = st.columns(2)
-                    m3.metric("Persi", len(non_ricambiano))
-                    m4.metric("Privacy", "A+")
+                    # DASHBOARD METRICHE
+                    c1, c2, c3 = st.columns(3)
+                    c1.metric("Seguiti", len(fings))
+                    c2.metric("Followers", len(fols))
+                    c3.metric("Persi", len(non_ricambiano))
 
                     st.write("###")
-                    
-                    t1, t2, t3 = st.tabs(["📉 LISTA", "💎 PRO", "⏱️ SALVA"])
+
+                    # NAVIGAZIONE PRINCIPALE (Tabs al posto della Sidebar)
+                    t1, t2, t3, t4 = st.tabs(["📉 LISTA", "⏱️ STORICO", "💎 PRO", "📖 GUIDA"])
 
                     with t1:
-                        st.dataframe(pd.DataFrame(non_ricambiano, columns=["Account"]), use_container_width=True, height=300)
+                        st.markdown("##### Profili che non ricambiano")
+                        st.dataframe(pd.DataFrame(non_ricambiano, columns=["Account"]), use_container_width=True, height=350)
 
                     with t2:
+                        st.markdown("#### Confronto Storico")
+                        st.write("Carica uno Snapshot (.insta) per vedere chi ti ha rimosso.")
+                        hist_file = st.file_uploader("Upload .insta", type="insta")
+                        
+                        if hist_file:
+                            old_data = json.load(hist_file)
+                            old_fols = set(old_data.get("followers", []))
+                            persi = sorted(list(old_fols - fols))
+                            if persi:
+                                st.markdown(f'<div class="unfollow-alert">🚨 {len(persi)} nuovi unfollowers rilevati!<br><small>{", ".join(persi)}</small></div>', unsafe_allow_html=True)
+                            else:
+                                st.success("Nessun cambiamento rilevato.")
+                        
+                        st.write("---")
+                        st.write("Salva la situazione attuale:")
+                        snap_data = {"date": datetime.now().strftime("%Y-%m-%d"), "followers": list(fols)}
+                        st.download_button("GENERA SNAPSHOT .INSTA", json.dumps(snap_data), "snapshot.insta")
+
+                    with t3:
                         st.markdown(f"""
                             <div class="premium-card">
-                                <h3 style='color:#d4af37;'>Fan Segreti</h3>
-                                <p style='font-size:0.9em; opacity:0.8;'>Sblocca l'identità di {len(fan)} persone che ti seguono.</p>
+                                <h2 style='color:#d4af37;'>Insights Fan Segreti</h2>
+                                <p>Individuati {len(fan)} profili che ti seguono senza ricambio.</p>
                                 <a href="https://www.paypal.me/TUO_USER/1.29" style='text-decoration:none;'>
-                                    <div style="background:#d4af37; color:#000; padding:15px; border-radius:50px; font-weight:bold; margin-top:10px;">SBLOCCA 1,29€</div>
+                                    <button style="background:#d4af37; color:black; padding:15px; border-radius:50px; font-weight:bold; border:none; cursor:pointer; width:100%;">SBLOCCA ORA 1,29€</button>
                                 </a>
                             </div>
                         """, unsafe_allow_html=True)
 
-                    with t3:
-                        st.markdown("#### Crea Snapshot")
-                        st.caption("Scarica il file .insta per confrontarlo in futuro.")
-                        snapshot_data = {"date": datetime.now().strftime("%Y-%m-%d"), "followers": list(fols)}
-                        st.download_button("📥 GENERA .INSTA", json.dumps(snapshot_data), f"snap_{datetime.now().strftime('%d_%m')}.insta")
+                    with t4:
+                        st.markdown("#### Come ottenere i dati")
+                        steps = ["1. Impostazioni IG", "2. Centro Account", "3. Scarica le tue informazioni", "4. Seleziona 'Follower e seguiti'", "5. Formato JSON", "6. Intervallo 'Dall'inizio'"]
+                        for s in steps:
+                            st.markdown(f"<div class='guide-step'>{s}</div>", unsafe_allow_html=True)
 
         except Exception:
-            st.error("File non valido.")
+            st.error("Errore nel caricamento dello ZIP.")
 
-st.markdown('<p style="text-align:center; opacity:0.1; font-size:0.6em; margin-top:50px;">GOLD ENGINE v5.1</p>', unsafe_allow_html=True)
+else:
+    # Se non c'è file, mostriamo la guida e il tasto PayPal subito
+    st.info("Carica il file ZIP per visualizzare le statistiche e lo storico.")
+    st.markdown("""
+        <div style="text-align:center; margin-top:20px;">
+            <a href="https://www.paypal.me/TUO_USER/1.29" style='text-decoration:none;'>
+                <p style="color:#d4af37; font-weight:bold;">Sostieni il progetto con una donazione</p>
+            </a>
+        </div>
+    """, unsafe_allow_html=True)
+
+st.markdown('</div>', unsafe_allow_html=True) # Fine main-container
+st.markdown('<p style="text-align:center; opacity:0.1; font-size:0.6em; margin-top:100px;">GOLD ENGINE v5.2</p>', unsafe_allow_html=True)
