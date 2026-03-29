@@ -14,11 +14,9 @@ st.set_page_config(page_title="InstaDetective Elite", page_icon="💎", layout="
 LINK_UNFOLLOWERS = "https://www.profitablecpmratenetwork.com/uizvppk2?key=f0a721816237e7835d3ea630c5d8e33e"
 LINK_FAN_SEGRETI = "https://www.profitablecpmratenetwork.com/shd3c1hdud?key=4d5754de72adc6dc7c524a6a47c574e5"
 
-# --- INIZIALIZZAZIONE STATI ---
+# --- STATO DELL'APP ---
 if 'unf_unlocked' not in st.session_state: st.session_state.unf_unlocked = False
 if 'fan_unlocked' not in st.session_state: st.session_state.fan_unlocked = False
-if 'show_ad_unf' not in st.session_state: st.session_state.show_ad_unf = False
-if 'show_ad_fan' not in st.session_state: st.session_state.show_ad_fan = False
 
 # --- DESIGN SYSTEM ---
 st.markdown("""
@@ -30,6 +28,7 @@ st.markdown("""
     .section-card { background: #0a0a0a; padding: 25px; border-radius: 20px; border: 1px solid #1a1a1a; margin-bottom: 20px; }
     .premium-lock-card { background: linear-gradient(145deg, #111, #000); border: 1px solid #d4af37; padding: 30px; border-radius: 20px; text-align: center; margin: 10px 0; }
     .stButton>button { border-radius: 12px !important; font-weight: 800 !important; width: 100% !important; background: #d4af37 !important; color: black !important; border: none !important; padding: 15px; }
+    .loading-text { color: #d4af37; font-weight: bold; text-align: center; font-size: 1.2em; margin-bottom: 10px; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -52,38 +51,13 @@ st.markdown("<p style='text-align:center; opacity:0.5; font-size:0.7em; margin-b
 # CARICAMENTO
 st.markdown('<div class="section-card">', unsafe_allow_html=True)
 c1, c2 = st.columns(2)
-with c1: uploaded_file = st.file_uploader("📂 Carica ZIP", type="zip")
-with c2: historical_file = st.file_uploader("⏳ Snapshot .insta", type="insta")
+with c1: uploaded_file = st.file_uploader("📂 Carica lo ZIP di Instagram", type="zip")
+with c2: historical_file = st.file_uploader("⏳ Carica Snapshot .insta", type="insta")
 st.markdown('</div>', unsafe_allow_html=True)
 
 if uploaded_file:
-    # Gestione Overlay Pubblicitario (Senza Reload)
-    if st.session_state.show_ad_unf or st.session_state.show_ad_fan:
-        target_link = LINK_UNFOLLOWERS if st.session_state.show_ad_unf else LINK_FAN_SEGRETI
-        
-        # UI Overlay Temporaneo
-        st.markdown(f"""
-            <div style="position:fixed; top:0; left:0; width:100%; height:100%; background:black; z-index:9999; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#d4af37;">
-                <h2>🎬 Analisi in corso...</h2>
-                <p style="color:white;">La tua lista si sbloccherà tra 30 secondi</p>
-            </div>
-            <script>window.open('{target_link}', '_blank');</script>
-        """, unsafe_allow_html=True)
-        
-        bar = st.progress(0)
-        for i in range(100):
-            time.sleep(0.3) # 30 secondi
-            bar.progress(i + 1)
-        
-        # Sblocco automatico dello stato
-        if st.session_state.show_ad_unf: st.session_state.unf_unlocked = True
-        if st.session_state.show_ad_fan: st.session_state.fan_unlocked = True
-        
-        st.session_state.show_ad_unf = False
-        st.session_state.show_ad_fan = False
-        st.rerun()
-
     try:
+        # Analisi dei file ZIP
         with zipfile.ZipFile(uploaded_file, 'r') as z:
             fols, fings = set(), set()
             for path in z.namelist():
@@ -96,47 +70,74 @@ if uploaded_file:
                 non_ricambiano = sorted(list(fings - fols))
                 fan = sorted(list(fols - fings))
 
-                st.write("###")
+                st.write("---")
                 t1, t2, t3 = st.tabs(["📉 UNFOLLOWERS", "👑 FAN (PRO)", "💾 SNAPSHOT"])
 
+                # --- TAB 1: UNFOLLOWERS ---
                 with t1:
                     if not st.session_state.unf_unlocked:
                         st.markdown(f"""
                             <div class="premium-lock-card">
                                 <h3 style="color:#d4af37;">📉 Lista Unfollowers ({len(non_ricambiano)})</h3>
+                                <p>Sblocca la lista dei profili che non ti ricambiano.</p>
                                 <a href="https://www.paypal.me/TUO_USER/0.99" target="_blank" style="text-decoration:none;">
-                                    <button style="background:#d4af37; color:black; border:none; padding:15px; width:100%; border-radius:10px; font-weight:bold; cursor:pointer; margin-bottom:15px;">🚀 SBLOCCA SUBITO 0,99€</button>
+                                    <button style="background:#d4af37; color:black; border:none; padding:15px; width:100%; border-radius:10px; font-weight:bold; cursor:pointer; margin-bottom:15px;">🚀 SBLOCCA ORA 0,99€</button>
                                 </a>
+                                <p style="font-size:0.8em; opacity:0.5;">oppure</p>
                             </div>
                         """, unsafe_allow_html=True)
-                        if st.button("📺 GUARDA VIDEO E SBLOCCA (GRATIS)", key="btn_unf"):
-                            st.session_state.show_ad_unf = True
+                        
+                        if st.button("📺 GUARDA PUBBLICITÀ E SBLOCCA GRATIS", key="btn_unf"):
+                            # Apre lo smart link in una nuova scheda
+                            components.html(f"<script>window.open('{LINK_UNFOLLOWERS}', '_blank');</script>", height=0)
+                            
+                            # Countdown visivo
+                            st.markdown('<p class="loading-text">Sblocco in corso... Attendi 30 secondi</p>', unsafe_allow_html=True)
+                            bar = st.progress(0)
+                            for i in range(100):
+                                time.sleep(0.3)
+                                bar.progress(i + 1)
+                            
+                            st.session_state.unf_unlocked = True
                             st.rerun()
                     else:
-                        st.success("✅ Lista Unfollowers Sbloccata")
+                        st.success("✅ Accesso Unfollowers Sbloccato")
                         st.dataframe(pd.DataFrame(non_ricambiano, columns=["Username"]), use_container_width=True)
 
+                # --- TAB 2: FAN SEGRETI ---
                 with t2:
                     if not st.session_state.fan_unlocked:
                         st.markdown(f"""
                             <div class="premium-lock-card">
                                 <h3 style="color:#d4af37;">👑 Fan Segreti ({len(fan)})</h3>
+                                <p>Scopri chi ti segue segretamente.</p>
                                 <a href="https://www.paypal.me/TUO_USER/0.99" target="_blank" style="text-decoration:none;">
-                                    <button style="background:#d4af37; color:black; border:none; padding:15px; width:100%; border-radius:10px; font-weight:bold; cursor:pointer; margin-bottom:15px;">🚀 SBLOCCA SUBITO 0,99€</button>
+                                    <button style="background:#d4af37; color:black; border:none; padding:15px; width:100%; border-radius:10px; font-weight:bold; cursor:pointer; margin-bottom:15px;">🚀 SBLOCCA ORA 0,99€</button>
                                 </a>
+                                <p style="font-size:0.8em; opacity:0.5;">oppure</p>
                             </div>
                         """, unsafe_allow_html=True)
-                        if st.button("📺 GUARDA VIDEO E SBLOCCA (GRATIS)", key="btn_fan"):
-                            st.session_state.show_ad_fan = True
+                        
+                        if st.button("📺 GUARDA PUBBLICITÀ E SBLOCCA GRATIS", key="btn_fan"):
+                            components.html(f"<script>window.open('{LINK_FAN_SEGRETI}', '_blank');</script>", height=0)
+                            
+                            st.markdown('<p class="loading-text">Analisi in corso... Attendi 30 secondi</p>', unsafe_allow_html=True)
+                            bar = st.progress(0)
+                            for i in range(100):
+                                time.sleep(0.3)
+                                bar.progress(i + 1)
+                            
+                            st.session_state.fan_unlocked = True
                             st.rerun()
                     else:
-                        st.success("✅ Lista Fan Sbloccata")
+                        st.success("✅ Accesso Fan Sbloccato")
                         st.dataframe(pd.DataFrame(fan, columns=["Username"]), use_container_width=True)
 
                 with t3:
-                    st.download_button("📥 GENERA SNAPSHOT", json.dumps({"f": list(fols)}), "profilo.insta")
+                    st.download_button("📥 GENERA SNAPSHOT .INSTA", json.dumps({"f": list(fols)}), "mio_profilo.insta")
 
-    except Exception: st.error("Errore ZIP.")
+    except Exception as e:
+        st.error(f"Errore: {e}")
 
 # BANNER FISSO FOOTER
 st.write("---")
