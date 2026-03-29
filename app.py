@@ -4,13 +4,12 @@ import zipfile
 import pandas as pd
 import re
 import plotly.express as px
-import time
 from datetime import datetime
 
-# --- CONFIGURAZIONE ---
+# --- CONFIGURAZIONE SISTEMA ---
 st.set_page_config(page_title="InstaDetective Elite", page_icon="💎", layout="wide")
 
-# --- UI DESIGN SYSTEM (ONYX & GOLD) ---
+# --- DESIGN SYSTEM ---
 st.markdown("""
     <style>
     #MainMenu {visibility: hidden;}
@@ -34,14 +33,6 @@ st.markdown("""
         margin-bottom: 20px;
     }
 
-    .snapshot-box {
-        background: rgba(212, 175, 55, 0.05);
-        padding: 25px;
-        border-radius: 20px;
-        border: 1px solid #d4af37;
-        margin-top: 20px;
-    }
-
     .premium-card {
         background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(0,0,0,1) 100%);
         padding: 40px;
@@ -50,19 +41,30 @@ st.markdown("""
         text-align: center;
     }
 
-    .stMetric {
-        background: transparent !important;
-        border: 1px solid #222 !important;
-        border-radius: 20px !important;
-    }
-
-    .guide-step {
+    .instruction-step {
         background: #111;
         padding: 12px;
         border-radius: 10px;
         margin-bottom: 8px;
         border: 1px solid #222;
         font-size: 0.85em;
+        color: #ccc;
+    }
+
+    .stMetric {
+        background: transparent !important;
+        border: 1px solid #222 !important;
+        border-radius: 20px !important;
+    }
+
+    .unfollow-alert {
+        background: rgba(231, 76, 60, 0.1);
+        border: 1px solid #e74c3c;
+        padding: 20px;
+        border-radius: 15px;
+        margin-bottom: 20px;
+        color: #ff4b4b;
+        font-weight: 600;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -79,39 +81,47 @@ def raw_text_extract(file_content):
             found.add(clean)
     return found
 
-# --- SIDEBAR ---
+# --- SIDEBAR: PROTOCOLLO & STORICO ---
 with st.sidebar:
-    st.markdown("<h2 style='color:#d4af37;'>Elite Protocol</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='color:#d4af37;'>ELITE PROTOCOL</h2>", unsafe_allow_html=True)
+    
+    # TASTO MONETIZZAZIONE
     st.markdown("""
         <a href="https://www.paypal.me/TUO_USER/1.29" target="_blank" style="text-decoration:none;">
-            <div style="background:#d4af37; color:#000; padding:15px; border-radius:12px; text-align:center; font-weight:700;">
-                Sblocca Insights PRO
+            <div style="background:#d4af37; color:#000; padding:15px; border-radius:12px; text-align:center; font-weight:800; letter-spacing:1px;">
+                SBLOCCA INSIGHTS PRO
             </div>
         </a>
     """, unsafe_allow_html=True)
     
     st.write("---")
-    st.markdown("#### Guida all'Esportazione")
-    st.markdown("""
-    <div class="guide-step"><b>1.</b> Impostazioni Instagram</div>
-    <div class="guide-step"><b>2.</b> Centro gestione account</div>
-    <div class="guide-step"><b>3.</b> Scarica le tue informazioni</div>
-    <div class="guide-step"><b>4.</b> Seleziona 'Follower e seguiti'</div>
-    <div class="guide-step"><b>5.</b> Formato: <b>JSON</b></div>
-    <div class="guide-step"><b>6.</b> Intervallo: <b>Dall'inizio</b></div>
-    """, unsafe_allow_html=True)
+    
+    # CARICAMENTO SNAPSHOT (IL "PRIMA")
+    st.markdown("#### ⏳ CONFRONTO STORICO")
+    st.caption("Carica qui il file .insta salvato in precedenza per rilevare chi ti ha rimosso il segui.")
+    historical_file = st.file_uploader("Upload Snapshot", type="insta", label_visibility="collapsed")
+    
     st.write("---")
     
-    # SEZIONE CONFRONTO STORICO (CARICAMENTO)
-    st.markdown("#### ⏳ Confronto Storico")
-    historical_file = st.file_uploader("Carica Snapshot (.insta)", type="insta", help="Carica il file salvato in precedenza per vedere chi ti ha rimosso il segui.")
+    # GUIDA EXPORT
+    st.markdown("#### GUIDA ESPORTAZIONE")
+    steps = [
+        "1. Impostazioni Instagram",
+        "2. Centro gestione account",
+        "3. Scarica informazioni",
+        "4. Seleziona 'Follower e seguiti'",
+        "5. Formato: JSON",
+        "6. Intervallo: 'Dall'inizio'"
+    ]
+    for s in steps:
+        st.markdown(f"<div class='instruction-step'>{s}</div>", unsafe_allow_html=True)
 
-# --- MAIN INTERFACE ---
-st.markdown("<h1 style='text-align:center; font-weight:800; font-size:3em;'>InstaDetective Elite</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center; opacity:0.5; letter-spacing:3px; margin-bottom:40px;'>MONITORAGGIO STORICO & RELAZIONI</p>", unsafe_allow_html=True)
+# --- MAIN ---
+st.markdown("<h1 style='text-align:center; font-weight:800; font-size:3em; margin-bottom:0;'>InstaDetective Elite</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center; opacity:0.4; letter-spacing:4px; margin-bottom:40px;'>MONITORAGGIO STORICO & RELAZIONI</p>", unsafe_allow_html=True)
 
 st.markdown('<div class="hero-card">', unsafe_allow_html=True)
-uploaded_file = st.file_uploader("Carica l'archivio .zip aggiornato", type="zip", label_visibility="collapsed")
+uploaded_file = st.file_uploader("Trascina l'archivio .zip aggiornato per l'analisi", type="zip", label_visibility="collapsed")
 st.markdown('</div>', unsafe_allow_html=True)
 
 if uploaded_file:
@@ -132,68 +142,75 @@ if uploaded_file:
                     comuni = fings.intersection(fols)
 
                     # --- LOGICA CONFRONTO STORICO ---
-                    st.write("###")
                     if historical_file:
-                        try:
-                            old_data = json.load(historical_file)
-                            old_fols = set(old_data.get("followers", []))
-                            persi = sorted(list(old_fols - fols))
-                            
-                            if persi:
-                                st.warning(f"⚠️ Rilevati {len(persi)} nuovi Unfollowers dall'ultima analisi!")
-                                st.write(", ".join(persi))
-                            else:
-                                st.success("✅ Nessun nuovo unfollower rilevato dallo snapshot storico.")
-                        except:
-                            st.error("Snapshot non valido.")
+                        old_data = json.load(historical_file)
+                        old_fols = set(old_data.get("followers", []))
+                        persi = sorted(list(old_fols - fols))
+                        
+                        if persi:
+                            st.markdown(f"""
+                                <div class="unfollow-alert">
+                                    🚨 ATTENZIONE: {len(persi)} profili hanno smesso di seguirti dall'ultima analisi!<br>
+                                    <span style="color:#ccc; font-size:0.9em; font-weight:400;">Persi: {", ".join(persi)}</span>
+                                </div>
+                            """, unsafe_allow_html=True)
+                        else:
+                            st.success("✅ Protocollo completato: Nessun nuovo unfollower rilevato.")
 
-                    # Dashboard Metriche
+                    # METRICHE DASHBOARD
+                    st.write("###")
                     c1, c2, c3, c4 = st.columns(4)
                     c1.metric("Seguiti", len(fings))
                     c2.metric("Followers", len(fols))
                     c3.metric("Non Ricambiano", len(non_ricambiano))
-                    c4.metric("Stato Salute", "Elite")
+                    c4.metric("Privacy Score", "A+")
 
                     st.write("###")
                     
                     t1, t2, t3 = st.tabs(["📉 UNFOLLOWERS", "💎 PREMIUM INSIGHTS", "⏱️ SALVA SNAPSHOT"])
 
                     with t1:
-                        st.markdown("##### Analisi Connessioni Unilaterali")
-                        df_unf = pd.DataFrame(non_ricambiano, columns=["Nome Account"])
-                        st.dataframe(df_unf, use_container_width=True, height=350)
+                        st.markdown("##### Analisi profili senza ricambio")
+                        st.dataframe(pd.DataFrame(non_ricambiano, columns=["Nome Account"]), use_container_width=True, height=350)
 
                     with t2:
                         st.markdown(f"""
                             <div class="premium-card">
                                 <h2 style='color:#d4af37;'>Insights Fan Segreti</h2>
-                                <p style='opacity:0.7;'>Ci sono {len(fan)} persone che ti osservano ma che tu non segui.</p>
+                                <p style='opacity:0.7;'>Abbiamo individuato {len(fan)} persone che ti seguono ma che tu non ricambi.</p>
                                 <a href="https://www.paypal.me/TUO_USER/1.29" style='text-decoration:none;'>
-                                    <button style="background:#d4af37; color:black; padding:15px 40px; border-radius:50px; border:none; font-weight:bold; cursor:pointer;">
+                                    <button style="background:#d4af37; color:black; padding:18px 45px; border-radius:50px; border:none; font-weight:bold; cursor:pointer; letter-spacing:1px;">
                                         SBLOCCA LISTA - 1,29€
                                     </button>
                                 </a>
+                                <p style='margin-top:20px; font-size:0.8em; opacity:0.4;'>Accesso istantaneo tramite protocollo sicuro PayPal.</p>
                             </div>
                         """, unsafe_allow_html=True)
 
                     with t3:
-                        st.markdown("##### Crea uno Snapshot Temporale")
-                        st.write("Scarica questo file per poterlo confrontare la prossima settimana e scoprire chi ti ha tolto il segui nel tempo.")
+                        st.markdown("### ⏱️ Time Machine")
+                        st.write("Crea un punto di ripristino per monitorare chi ti toglie il segui nel tempo.")
                         
+                        st.info("""
+                        **Come funziona:**
+                        1. Scarica ora il file .insta (Snapshot).
+                        2. Tra una settimana, carica il nuovo ZIP di Instagram e il file .insta salvato.
+                        3. Il sistema ti dirà istantaneamente chi è sparito dalla lista.
+                        """)
+                        
+                        # Generazione file Snapshot
                         snapshot_data = {
-                            "date": datetime.now().strftime("%d/%m/%Y"),
+                            "date": datetime.now().strftime("%Y-%m-%d"),
                             "followers": list(fols)
                         }
-                        snapshot_json = json.dumps(snapshot_data)
-                        
                         st.download_button(
                             label="📥 GENERA SNAPSHOT STORICO (.insta)",
-                            data=snapshot_json,
+                            data=json.dumps(snapshot_data),
                             file_name=f"snapshot_{datetime.now().strftime('%d_%m')}.insta",
                             mime="application/json"
                         )
 
         except Exception:
-            st.error("Errore nel protocollo. File non conforme.")
+            st.error("Errore: Archivio non conforme agli standard Instagram.")
 
-st.markdown('<p style="text-align:center; opacity:0.1; margin-top:100px; letter-spacing:2px;">INSTADETECTIVE ENCRYPTED ENGINE v5.0</p>', unsafe_allow_html=True)
+st.markdown('<p style="text-align:center; opacity:0.1; margin-top:100px; letter-spacing:2px;">ENCRYPTED SYSTEM ACCESS | v5.0 GOLD</p>', unsafe_allow_html=True)
