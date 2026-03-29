@@ -2,6 +2,7 @@ import streamlit as st
 import json
 import zipfile
 import pandas as pd
+import re
 
 st.set_page_config(page_title="InstaDetective Elite", page_icon="💎")
 
@@ -13,34 +14,36 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-def deep_scan(obj):
-    """Estrae ogni stringa possibile che non sia un link o una data"""
+def raw_text_extract(file_content):
+    """Estrae username usando espressioni regolari dal testo grezzo del JSON"""
+    # Cerca stringhe tra virgolette che non siano link o date
+    # Tipicamente gli username sono dopo "value": "nome" o simili
+    text = file_content.decode('utf-8', errors='ignore')
+    # Trova tutto ciò che è tra virgolette
+    potentials = re.findall(r'"([^"]*)"', text)
+    
     found = set()
-    if isinstance(obj, dict):
-        for k, v in obj.items():
-            if isinstance(v, str):
-                # Pulizia stringa
-                clean_v = v.strip().lower()
-                # Filtri: No link, no date (timestamp lunghi), no vuoti, lunghezza ragionevole
-                if clean_v and not clean_v.startswith('http') and not (clean_v.isdigit() and len(clean_v) > 5) and len(clean_v) < 32:
-                    # Escludiamo chiavi di sistema comuni
-                    if k not in ['href', 'title', 'timestamp']:
-                        found.add(clean_v)
-            else:
-                found.update(deep_scan(v))
-    elif isinstance(obj, list):
-        for item in obj:
-            found.update(deep_scan(item))
+    blacklist = {'value', 'href', 'timestamp', 'string_list_data', 'relationships_following', 'title'}
+    
+    for p in potentials:
+        clean = p.strip().lower()
+        # Filtro username: lunghezza 1-30, no spazi, no link, no solo numeri
+        if (clean and 
+            len(clean) < 31 and 
+            clean not in blacklist and 
+            not clean.startswith('http') and 
+            not (clean.isdigit() and len(clean) > 5)):
+            found.add(clean)
     return found
 
 st.title("💎 InstaDetective Elite")
-st.write("Scansione Profonda e Correzione Automatica")
+st.write("Scansione Testuale Avanzata (Modalità Compatibilità)")
 
 st.markdown('<div class="main-box">', unsafe_allow_html=True)
 file = st.file_uploader("Carica lo ZIP di Instagram", type="zip")
 
 if file:
-    with st.spinner("Analisi in corso..."):
+    with st.spinner("Estrazione dati in corso..."):
         try:
             with zipfile.ZipFile(file, 'r') as z:
                 fols, fings = set(), set()
@@ -48,20 +51,19 @@ if file:
                 for path in z.namelist():
                     p_lower = path.lower()
                     
-                    # File Followers
+                    # Estrazione Followers
                     if p_lower.endswith('followers_1.json'):
                         with z.open(path) as f:
-                            fols.update(deep_scan(json.load(f)))
+                            fols.update(raw_text_extract(f.read()))
                     
-                    # File Following (Versione ultra-permissiva)
+                    # Estrazione Following
                     elif p_lower.endswith('following.json') and 'hashtag' not in p_lower:
                         with z.open(path) as f:
-                            fings.update(deep_scan(json.load(f)))
+                            fings.update(raw_text_extract(f.read()))
 
-                # Rimuoviamo parole di sistema che potrebbero essere state catturate
-                garbage = {'follower', 'following', 'true', 'false', 'relationships_following', 'string_list_data'}
-                fols -= garbage
-                fings -= garbage
+                # Pulizia set: rimuoviamo termini tecnici che sfuggono alla blacklist
+                fols.discard('true'); fols.discard('false')
+                fings.discard('true'); fings.discard('false')
 
                 if fings and fols:
                     diff = sorted(list(fings - fols))
@@ -73,19 +75,16 @@ if file:
                     
                     st.markdown("---")
                     if diff:
-                        st.subheader("🕵️ Profili che non ti seguono")
+                        st.subheader("🕵️ Utenti individuati")
                         st.table(pd.DataFrame(diff, columns=["Username"]))
-                        st.download_button("📥 Scarica Lista", "\n".join(diff), "lista_unfollowers.txt")
+                        st.download_button("📥 Scarica Report .txt", "\n".join(diff), "unfollowers.txt")
                     else:
                         st.balloons()
-                        st.success("Tutti ricambiano il follow!")
+                        st.success("Tutti i profili ti seguono!")
                 else:
-                    st.error("⚠️ Dati non estratti correttamente dal file 'following.json'.")
+                    st.error("⚠️ Errore critico di lettura.")
                     st.write(f"DEBUG: Trovati {len(fols)} followers | {len(fings)} seguiti.")
-                    
-                    # ULTIMA SPIAGGIA: Se seguiti è ancora 0, mostriamo i nomi delle chiavi del JSON
-                    if len(fings) == 0:
-                        st.warning("Analisi d'emergenza: Il file dei seguiti sembra avere una struttura ignota.")
+                    st.info("Se i seguiti sono ancora 0, il file 'following.json' potrebbe essere vuoto nello ZIP.")
 
         except Exception as e:
             st.error(f"Errore tecnico: {e}")
