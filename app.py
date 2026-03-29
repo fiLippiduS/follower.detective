@@ -8,65 +8,88 @@ import plotly.express as px
 # --- CONFIGURAZIONE ---
 st.set_page_config(page_title="InstaDetective Elite", page_icon="💎", layout="wide")
 
-# --- CSS AVANZATO: PAYWALL & TUTORIAL ---
+# --- UI DESIGN SYSTEM ---
 st.markdown("""
     <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
     
-    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
     
     html, body, [class*="css"] {
-        font-family: 'Montserrat', sans-serif;
-        background-color: #050505;
-        color: #FFFFFF;
+        font-family: 'Inter', sans-serif;
+        background-color: #000000;
+        color: #f5f5f7;
     }
 
-    .main-card {
-        background: rgba(255, 255, 255, 0.02);
-        padding: 30px;
-        border-radius: 25px;
-        border: 1px solid rgba(212, 175, 55, 0.1);
+    /* Card Principale */
+    .hero-card {
+        background: linear-gradient(145deg, #1a1a1a, #0a0a0a);
+        padding: 60px;
+        border-radius: 40px;
+        border: 1px solid rgba(212, 175, 55, 0.15);
         text-align: center;
-        margin-bottom: 20px;
+        margin-bottom: 40px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.5);
     }
 
-    /* Paywall Style */
-    .locked-section {
-        background: rgba(255, 255, 255, 0.05);
-        padding: 50px;
-        border-radius: 20px;
-        border: 2px dashed rgba(212, 175, 55, 0.5);
+    /* Paywall Elegante */
+    .paywall-container {
+        background: rgba(212, 175, 55, 0.03);
+        padding: 80px 40px;
+        border-radius: 30px;
+        border: 1px solid rgba(212, 175, 55, 0.2);
         text-align: center;
-        backdrop-filter: blur(10px);
+        backdrop-filter: blur(20px);
+        margin: 20px 0;
     }
 
-    .unlock-btn {
-        background: #d4af37 !important;
-        color: black !important;
-        font-weight: bold;
-        padding: 15px 30px;
+    .premium-badge {
+        background: #d4af37;
+        color: #000;
+        padding: 4px 12px;
         border-radius: 50px;
+        font-size: 0.7em;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 15px;
+        display: inline-block;
+    }
+
+    /* Bottoni */
+    .cta-button {
+        background: #d4af37 !important;
+        color: #000 !important;
+        font-weight: 600 !important;
+        padding: 18px 45px !important;
+        border-radius: 100px !important;
         text-decoration: none;
         display: inline-block;
-        margin-top: 20px;
-        transition: 0.3s;
+        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        border: none;
     }
 
-    .tutorial-box {
-        background: rgba(212, 175, 55, 0.05);
+    .cta-button:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 30px rgba(212, 175, 55, 0.4);
+    }
+
+    /* Tutorial Sidebar */
+    .guide-step {
+        background: #111;
         padding: 15px;
-        border-radius: 15px;
+        border-radius: 12px;
+        margin-bottom: 10px;
+        border: 1px solid #222;
         font-size: 0.85em;
-        line-height: 1.4;
-        border-left: 3px solid #d4af37;
     }
     
     .stMetric {
-        background: rgba(255,255,255,0.03) !important;
-        border: 1px solid rgba(212, 175, 55, 0.2) !important;
-        border-radius: 15px !important;
+        background: transparent !important;
+        border: 1px solid #222 !important;
+        border-radius: 20px !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -83,42 +106,40 @@ def raw_text_extract(file_content):
             found.add(clean)
     return found
 
-# --- SIDEBAR & TUTORIAL ---
+# --- SIDEBAR: REVENUE & GUIDA ---
 with st.sidebar:
-    st.title("💎 Premium Area")
+    st.markdown("<h2 style='color:#d4af37;'>Elite Support</h2>", unsafe_allow_html=True)
     st.markdown("""
-        <a href="https://www.paypal.me/TUO_USER/1.29" target="_blank">
-            <button style="width:100%; border-radius:50px; background:#d4af37; border:none; color:black; padding:12px; font-weight:bold; cursor:pointer; margin-bottom:10px;">
-                ☕ Offrimi un caffè
-            </button>
+        <a href="https://www.paypal.me/TUO_USER/1.29" target="_blank" style="text-decoration:none;">
+            <div style="background:#d4af37; color:#000; padding:15px; border-radius:12px; text-align:center; font-weight:700;">
+                Sostieni il Progetto
+            </div>
         </a>
     """, unsafe_allow_html=True)
     
-    st.write("---")
-    st.subheader("📖 Come ottenere i dati")
+    st.write("###")
+    st.markdown("#### Protocollo di Esportazione")
     st.markdown("""
-    <div class="tutorial-box">
-    1️⃣ Apri <b>Instagram</b> > Impostazioni.<br>
-    2️⃣ <b>Centro gestione account</b> > Le tue informazioni.<br>
-    3️⃣ <b>Scarica informazioni</b> > Scarica o trasferisci.<br>
-    4️⃣ Seleziona <b>Solo alcuni tipi</b> > 'Follower e seguiti'.<br>
-    5️⃣ <b>Importante:</b> Formato <b>JSON</b> e Intervallo <b>'Dall'inizio'</b>.<br>
-    6️⃣ Attendi l'email di Instagram e carica lo ZIP qui.
-    </div>
+    <div class="guide-step"><b>01.</b> Apri Impostazioni Instagram</div>
+    <div class="guide-step"><b>02.</b> Centro gestione account</div>
+    <div class="guide-step"><b>03.</b> Scarica le tue informazioni</div>
+    <div class="guide-step"><b>04.</b> Seleziona 'Follower e seguiti'</div>
+    <div class="guide-step"><b>05.</b> Formato: <b>JSON</b></div>
+    <div class="guide-step"><b>06.</b> Intervallo: <b>Dall'inizio</b></div>
     """, unsafe_allow_html=True)
     st.write("---")
-    st.caption("Privacy: I dati non lasciano mai il tuo browser.")
+    st.caption("Standard di Sicurezza Militare: Nessun dato viene trasmesso o salvato.")
 
-# --- MAIN ---
-st.title("Analisi Connessioni Elite")
-st.markdown("Monitora chi non ricambia il tuo follow in totale sicurezza.")
+# --- INTERFACCIA PRINCIPALE ---
+st.markdown("<h1 style='text-align:center; letter-spacing:-1px;'>InstaDetective Elite</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center; opacity:0.6; font-size:1.1em;'>Analisi crittografica delle relazioni digitali.</p>", unsafe_allow_html=True)
 
-st.markdown('<div class="main-card">', unsafe_allow_html=True)
-uploaded_file = st.file_uploader("", type="zip")
+st.markdown('<div class="hero-card">', unsafe_allow_html=True)
+uploaded_file = st.file_uploader("Trascina l'archivio .zip per iniziare la scansione", type="zip", label_visibility="collapsed")
 st.markdown('</div>', unsafe_allow_html=True)
 
 if uploaded_file:
-    with st.spinner("Analisi dei metadati..."):
+    with st.spinner("Decriptazione e analisi in corso..."):
         try:
             with zipfile.ZipFile(uploaded_file, 'r') as z:
                 fols, fings = set(), set()
@@ -139,39 +160,51 @@ if uploaded_file:
                     c1.metric("Seguiti", len(fings))
                     c2.metric("Followers", len(fols))
                     c3.metric("Unfollowers", len(non_ricambiano))
-                    c4.metric("Fan", "🔒 Locked")
+                    c4.metric("Fan Index", "PRO")
 
-                    tab1, tab2, tab3 = st.tabs(["📉 Unfollowers", "⭐ Area Fan (Pro)", "📊 Statistiche"])
+                    st.write("###")
+                    
+                    t1, t2, t3 = st.tabs(["UNFOLLOWERS", "PREMIUM INSIGHTS", "DATA VISUALIZATION"])
 
-                    with tab1:
+                    with t1:
                         if non_ricambiano:
-                            st.write("Questi profili non ricambiano il tuo follow:")
-                            st.dataframe(pd.DataFrame(non_ricambiano, columns=["Username"]), use_container_width=True, height=350)
+                            st.markdown("##### Profili che non ricambiano l'interazione")
+                            df_unf = pd.DataFrame(non_ricambiano, columns=["Account ID"])
+                            st.dataframe(df_unf, use_container_width=True, height=400)
+                            
+                            csv = df_unf.to_csv(index=False).encode('utf-8')
+                            st.download_button("Esporta Report CSV", csv, "unfollowers.csv", "text/csv")
                         else:
-                            st.success("Tutti ricambiano il tuo follow!")
+                            st.success("Analisi completata: Connessioni 100% reciproche.")
 
-                    with tab2:
-                        # SEZIONE BLOCCATA (PAYWALL)
+                    with t2:
                         st.markdown(f"""
-                            <div class="locked-section">
-                                <h2 style="color:#d4af37;">🔓 Sblocca la Sezione Fan</h2>
-                                <p>Scopri chi ti segue ma non è ancora ricambiato da te ({len(fan)} profili individuati).</p>
-                                <p style="font-size:0.9em; opacity:0.7;">Ottieni l'accesso completo a questa funzione premium.</p>
-                                <a href="https://www.paypal.me/TUO_USER/1.29" class="unlock-btn">Sblocca ora a 1,29€</a>
+                            <div class="paywall-container">
+                                <div class="premium-badge">Exclusive Access</div>
+                                <h2 style="color:#f5f5f7; margin-bottom:10px;">Identifica i tuoi Fan ({len(fan)})</h2>
+                                <p style="opacity:0.6; max-width:500px; margin: 0 auto 30px auto;">
+                                    Scopri gli utenti che seguono i tuoi aggiornamenti ma che non hai ancora ricambiato. Ottimizza il tuo network sociale ora.
+                                </p>
+                                <a href="https://www.paypal.me/TUO_USER/1.29" class="cta-button">Sblocca Insights per 1,29€</a>
                             </div>
                         """, unsafe_allow_html=True)
 
-                    with tab3:
+                    with t3:
                         fig = px.pie(
                             values=[len(comuni), len(non_ricambiano)],
                             names=['Reciproci', 'Unfollowers'],
-                            color_discrete_sequence=['#2ecc71', '#e74c3c'],
-                            hole=0.6
+                            color_discrete_sequence=['#1db954', '#ff4b4b'],
+                            hole=0.7
                         )
-                        fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', font_color="white", margin=dict(t=0, b=0, l=0, r=0))
+                        fig.update_layout(
+                            paper_bgcolor='rgba(0,0,0,0)', 
+                            plot_bgcolor='rgba(0,0,0,0)', 
+                            font_color="white",
+                            showlegend=True
+                        )
                         st.plotly_chart(fig, use_container_width=True)
 
         except Exception:
-            st.error("Errore nel caricamento. Verifica che il file ZIP sia corretto.")
+            st.error("Protocollo fallito. Verificare l'integrità del file .zip.")
 
-st.markdown('<p style="text-align:center; opacity:0.3; font-size:0.7em; margin-top:50px;">InstaDetective Elite &copy; 2026</p>', unsafe_allow_html=True)
+st.markdown('<p style="text-align:center; opacity:0.2; font-size:0.7em; margin-top:100px; letter-spacing:2px;">INSTADETECTIVE ELITE &bull; ENCRYPTED ENGINE v4.5</p>', unsafe_allow_html=True)
