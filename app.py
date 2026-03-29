@@ -2,6 +2,7 @@ import streamlit as st
 import json
 import zipfile
 import pandas as pd
+import re
 
 st.set_page_config(page_title="InstaDetective Elite", page_icon="💎")
 
@@ -12,42 +13,53 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-def universal_extractor(obj):
-    """Estrae ogni 'value' trovato nel JSON, indipendentemente dalla struttura"""
+def brute_force_extract(obj):
+    """Estrae QUALSIASI stringa che assomigli a un username nel JSON"""
     found = set()
     if isinstance(obj, dict):
         for k, v in obj.items():
-            if k == 'value' and isinstance(v, str):
-                if v and not v.startswith('http') and not v.replace('.', '').isdigit():
-                    found.add(v.lower().strip())
-            else:
-                found.update(universal_extractor(v))
+            if isinstance(v, (str, dict, list)):
+                # Se il valore è una stringa, verifichiamo se è un username
+                if isinstance(v, str):
+                    # Filtro: no link, no date, no nomi troppo lunghi, no numeri puri
+                    if v and not v.startswith('http') and not v.replace('.', '').isdigit() and len(v) < 32:
+                        if k not in ['title', 'href']: # Escludiamo metadati comuni
+                            found.add(v.lower().strip())
+                found.update(brute_force_extract(v))
     elif isinstance(obj, list):
         for item in obj:
-            found.update(universal_extractor(item))
+            found.update(brute_force_extract(item))
     return found
 
 st.title("💎 InstaDetective Elite")
-st.write("Analisi Definitiva a Scansione Totale")
+st.write("Analisi con Scansione Euristica Totale")
 
 st.markdown('<div class="main-box">', unsafe_allow_html=True)
 file = st.file_uploader("Carica lo ZIP di Instagram", type="zip")
 
 if file:
-    with st.spinner("Analisi profonda dei file JSON..."):
+    with st.spinner("Scansione euristica dei file..."):
         try:
             with zipfile.ZipFile(file, 'r') as z:
                 fols, fings = set(), set()
                 
                 for path in z.namelist():
                     p_lower = path.lower()
-                    # Identifica i file corretti nel percorso che hai descritto
-                    if p_lower.endswith('followers_1.json'):
+                    
+                    # Filtro file followers
+                    if p_lower.endswith('followers_1.json') or p_lower.endswith('followers.json'):
                         with z.open(path) as f:
-                            fols.update(universal_extractor(json.load(f)))
+                            fols.update(brute_force_extract(json.load(f)))
+                    
+                    # Filtro file following (escludendo hashtag)
                     elif p_lower.endswith('following.json') and 'hashtag' not in p_lower:
                         with z.open(path) as f:
-                            fings.update(universal_extractor(json.load(f)))
+                            fings.update(brute_force_extract(json.load(f)))
+
+                # Pulizia finale: rimuoviamo termini comuni che non sono username
+                garbage = {'follower', 'following', 'true', 'false', 'none', 'relationships_following'}
+                fols -= garbage
+                fings -= garbage
 
                 if fings and fols:
                     diff = sorted(list(fings - fols))
@@ -59,17 +71,14 @@ if file:
                     
                     st.markdown("---")
                     if diff:
-                        st.subheader("🕵️ Profili individuati")
                         st.table(pd.DataFrame(diff, columns=["Username"]))
                         st.download_button("📥 Scarica Report", "\n".join(diff), "unfollowers.txt")
                     else:
                         st.success("Tutti ricambiano!")
                 else:
-                    st.error("⚠️ Errore di lettura profonda.")
-                    st.write(f"DEBUG - Nomi estratti: {len(fols)} Followers | {len(fings)} Seguiti")
-                    # Mostriamo un'anteprima del problema se è ancora 0
-                    if len(fings) == 0:
-                        st.info("Il file 'following.json' è stato trovato ma appare vuoto o con struttura ignota.")
+                    st.error("⚠️ Nessun dato estratto dai file.")
+                    st.write(f"DEBUG: File analizzati correttamente, ma trovati {len(fols)} followers e {len(fings)} seguiti.")
+                    st.info("Se i seguiti sono ancora 0, apri il file 'following.json' e controlla se vedi i nomi dei tuoi amici.")
 
         except Exception as e:
             st.error(f"Errore tecnico: {e}")
