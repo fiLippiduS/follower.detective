@@ -13,18 +13,26 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 def extract_names(data):
-    """Estrae i nomi in modo intelligente in base alla struttura Instagram"""
+    """Estrae i nomi gestendo i valori nulli (NoneType)"""
     names = set()
-    # Se è la struttura dei 'Following'
+    
+    # Caso 1: Struttura dei 'Following' (Dizionario con chiave specifica)
     if isinstance(data, dict) and 'relationships_following' in data:
         for item in data['relationships_following']:
             for sub in item.get('string_list_data', []):
-                names.add(sub.get('value').lower())
-    # Se è la struttura dei 'Followers' (lista semplice)
+                val = sub.get('value')
+                if val: # Controlla che il nome non sia nullo
+                    names.add(val.lower())
+                    
+    # Caso 2: Struttura dei 'Followers' (Lista semplice)
     elif isinstance(data, list):
         for item in data:
-            for sub in item.get('string_list_data', []):
-                names.add(sub.get('value').lower())
+            # Alcuni file hanno una struttura leggermente diversa, gestiamo entrambi
+            entry_list = item.get('string_list_data', []) if isinstance(item, dict) else []
+            for sub in entry_list:
+                val = sub.get('value')
+                if val:
+                    names.add(val.lower())
     return names
 
 st.title("💎 InstaDetective Elite")
@@ -46,15 +54,14 @@ with st.container():
                             # Cerca followers
                             if 'follower' in name.lower() and 'pending' not in name.lower():
                                 with z.open(name) as f:
-                                    fols.update(extract_names(json.load(f)))
+                                    content = json.load(f)
+                                    fols.update(extract_names(content))
                             # Cerca following
                             elif 'following' in name.lower():
                                 with z.open(name) as f:
-                                    fings.update(extract_names(json.load(f)))
+                                    content = json.load(f)
+                                    fings.update(extract_names(content))
                 
-                # Pulizia
-                fols.discard(None); fings.discard(None)
-
                 if fings and fols:
                     diff = sorted(list(fings - fols))
                     
@@ -64,16 +71,16 @@ with st.container():
                     c3.metric("Non ricambiano", len(diff))
                     
                     if diff:
-                        st.subheader("⚠️ Chi non ti ricambia:")
+                        st.subheader("⚠️ Account che non ti seguono:")
                         df = pd.DataFrame(diff, columns=["Username"])
                         st.table(df)
                     else:
                         st.balloons()
-                        st.success("Grande! Tutti i profili che segui ti ricambiano.")
+                        st.success("Tutti i profili che segui ti ricambiano!")
                 else:
-                    st.error("❌ Errore di lettura.")
-                    st.write(f"Dati trovati -> Follower: {len(fols)} | Seguiti: {len(fings)}")
-                    st.info("Assicurati di aver scaricato 'Tutti i tempi' e formato 'JSON'.")
+                    st.error("❌ Dati insufficienti nello ZIP.")
+                    st.write(f"Debug -> Follower trovati: {len(fols)} | Seguiti trovati: {len(fings)}")
+                    st.info("Assicurati di aver scaricato i dati in formato JSON (non HTML).")
                         
             except Exception as e:
                 st.error(f"Errore tecnico: {e}")
