@@ -2,58 +2,64 @@ import streamlit as st
 import json
 import zipfile
 import pandas as pd
-import time
 
 st.set_page_config(page_title="InstaDetective Elite", page_icon="💎")
 
-# CSS Migliorato 
+# UI Styling
 st.markdown("""
     <style>
     .stApp { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); color: white; }
     .main-box { background: rgba(255,255,255,0.1); padding: 2rem; border-radius: 20px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); }
-    stMetric { background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; }
     </style>
     """, unsafe_allow_html=True)
 
-def extract_values(obj):
-    """Funzione magica: estrae tutti i nomi utente ovunque siano nel JSON"""
+def recursive_extract(obj):
+    """Estrae i nomi utente cercando la chiave 'value' in tutto il JSON"""
     found = set()
     if isinstance(obj, dict):
         if 'value' in obj:
-            found.add(obj['value'].lower())
-        for k, v in obj.items():
-            found.update(extract_values(v))
+            val = str(obj['value']).lower()
+            # Escludiamo link o date, prendiamo solo username probabili
+            if not val.startswith('http') and not val.replace('.', '').isdigit():
+                found.add(val)
+        for v in obj.values():
+            found.update(recursive_extract(v))
     elif isinstance(obj, list):
         for item in obj:
-            found.update(extract_values(item))
+            found.update(recursive_extract(item))
     return found
 
 st.title("💎 InstaDetective Elite")
-st.write("Analisi professionale dei dati Instagram")
+st.write("Scansione universale dei file JSON di Instagram")
 
 with st.container():
     st.markdown('<div class="main-box">', unsafe_allow_html=True)
-    file = st.file_uploader("Trascina qui lo ZIP dei dati Instagram", type="zip")
+    file = st.file_uploader("Trascina qui lo ZIP", type="zip")
     
     if file:
-        with st.spinner("Scansione profonda dei metadati..."):
+        with st.spinner("Ricerca file in corso..."):
             try:
                 with zipfile.ZipFile(file, 'r') as z:
                     fols = set()
                     fings = set()
                     
-                    for name in z.namelist():
-                        # Cerca i file corretti
-                        if 'followers_1.json' in name:
-                            with z.open(name) as f:
-                                fols.update(extract_values(json.load(f)))
-                        if 'following.json' in name:
-                            with z.open(name) as f:
-                                fings.update(extract_values(json.load(f)))
+                    # Scansioniamo TUTTI i file nello ZIP
+                    for info in z.infolist():
+                        fname = info.filename.lower()
+                        
+                        # Se è un JSON e contiene parole chiave
+                        if fname.endswith('.json'):
+                            if 'follower' in fname:
+                                with z.open(info.filename) as f:
+                                    fols.update(recursive_extract(json.load(f)))
+                            elif 'following' in fname:
+                                with z.open(info.filename) as f:
+                                    fings.update(recursive_extract(json.load(f)))
                 
-                if not fings or not fols:
-                    st.error("⚠️ Attenzione: Non ho trovato dati validi nello ZIP. Assicurati di aver scaricato i dati in formato JSON e non HTML.")
-                else:
+                # Rimuoviamo eventuali "null" o stringhe vuote
+                fols.discard('null'); fings.discard('null')
+
+                if fings and fols:
                     diff = sorted(list(fings - fols))
                     
                     c1, c2, c3 = st.columns(3)
@@ -62,14 +68,15 @@ with st.container():
                     c3.metric("Non ricambiano", len(diff))
                     
                     if diff:
-                        st.subheader("Profili che non ti seguono:")
-                        # Creiamo una tabella pulita senza indici strani
-                        df = pd.DataFrame(diff, columns=["Username Instagram"])
-                        st.table(df)
+                        st.subheader("Profili individuati:")
+                        st.table(pd.DataFrame(diff, columns=["Username"]))
                     else:
-                        st.balloons()
-                        st.success("Tutti i profili che segui ti ricambiano!")
+                        st.success("Tutti i profili ti seguono!")
+                else:
+                    st.warning("⚠️ File trovati ma sembrano vuoti o non contengono nomi validi.")
+                    # Debug per te: mostriamo cosa ha trovato
+                    st.write(f"Debug - File letti: Follower ({len(fols)} nomi), Seguiti ({len(fings)} nomi)")
                         
             except Exception as e:
-                st.error(f"Errore tecnico durante la lettura: {e}")
+                st.error(f"Errore di lettura: {e}")
     st.markdown('</div>', unsafe_allow_html=True)
