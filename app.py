@@ -6,7 +6,7 @@ import time
 
 st.set_page_config(page_title="InstaDetective Elite", page_icon="💎")
 
-# CSS Migliorato
+# CSS Migliorato 
 st.markdown("""
     <style>
     .stApp { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); color: white; }
