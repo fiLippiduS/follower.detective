@@ -14,17 +14,19 @@ st.set_page_config(page_title="InstaDetective Elite", page_icon="💎", layout="
 LINK_UNFOLLOWERS = "https://www.profitablecpmratenetwork.com/uizvppk2?key=f0a721816237e7835d3ea630c5d8e33e"
 LINK_FAN_SEGRETI = "https://www.profitablecpmratenetwork.com/shd3c1hdud?key=4d5754de72adc6dc7c524a6a47c574e5"
 
-# --- PERSISTENZA DATI (CACHE) ---
+# --- CACHE & LOGICA ESTRAZIONE ---
 @st.cache_data(show_spinner=False)
 def process_zip(file_bytes):
-    with zipfile.ZipFile(file_bytes, 'r') as z:
-        fols, fings = set(), set()
-        for path in z.namelist():
-            if path.lower().endswith('followers_1.json'):
-                with z.open(path) as f: fols.update(raw_text_extract(f.read()))
-            elif path.lower().endswith('following.json') and 'hashtag' not in path.lower():
-                with z.open(path) as f: fings.update(raw_text_extract(f.read()))
-        return fols, fings
+    try:
+        with zipfile.ZipFile(file_bytes, 'r') as z:
+            fols, fings = set(), set()
+            for path in z.namelist():
+                if path.lower().endswith('followers_1.json'):
+                    with z.open(path) as f: fols.update(raw_text_extract(f.read()))
+                elif path.lower().endswith('following.json') and 'hashtag' not in path.lower():
+                    with z.open(path) as f: fings.update(raw_text_extract(f.read()))
+            return fols, fings
+    except: return set(), set()
 
 def raw_text_extract(text_bytes):
     text = text_bytes.decode('utf-8', errors='ignore')
@@ -48,21 +50,38 @@ st.markdown("""
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; background-color: #000; color: #f5f5f7; }
     .main-container { max-width: 800px; margin: auto; padding: 10px; }
     .section-card { background: #0a0a0a; padding: 20px; border-radius: 20px; border: 1px solid #1a1a1a; margin-bottom: 15px; }
-    .stButton>button { border-radius: 12px !important; font-weight: 800 !important; width: 100% !important; background: #d4af37 !important; color: black !important; height: 55px; }
-    .timer-box { text-align: center; padding: 40px; border: 2px solid #d4af37; border-radius: 20px; background: #111; margin: 20px 0; }
-    .timer-val { font-size: 4rem; font-weight: 900; color: #d4af37; }
+    .guide-box { background: rgba(212, 175, 55, 0.05); border-left: 4px solid #d4af37; padding: 15px; border-radius: 10px; margin-bottom: 20px; font-size: 0.9em; }
+    .timer-val { font-size: 3.5rem; font-weight: 900; color: #d4af37; text-align: center; margin: 10px 0; }
+    .premium-btn { 
+        display: block; width: 100%; padding: 15px; background: #d4af37; color: black !important; 
+        text-align: center; border-radius: 12px; font-weight: 800; text-decoration: none; margin-bottom: 10px;
+    }
+    .ad-btn { 
+        display: block; width: 100%; padding: 15px; background: transparent; color: #d4af37 !important; 
+        text-align: center; border-radius: 12px; font-weight: 800; border: 1px solid #d4af37; text-decoration: none;
+    }
     </style>
     """, unsafe_allow_html=True)
 
 st.markdown('<div class="main-container">', unsafe_allow_html=True)
 st.markdown("<h1 style='text-align:center; color:#d4af37; margin-bottom:0;'>InstaDetective</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center; opacity:0.5; font-size:0.7em; margin-bottom:30px;'>ADVANCED ANALYTICS & REWARDS</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center; opacity:0.5; font-size:0.7em; margin-bottom:30px;'>PREMIUM ANALYTICS SYSTEM</p>", unsafe_allow_html=True)
 
-# 1. CARICAMENTO (Sempre visibile)
+# 1. GUIDA FISSA
+with st.container():
+    st.markdown("""
+    <div class="guide-box">
+        <b>📘 GUIDA:</b> Scarica lo ZIP da Instagram (JSON, 'Dall'inizio'). 
+        Carica lo ZIP qui sotto per vedere chi non ti segue o i tuoi Fan. 
+        Usa lo <b>Snapshot</b> per monitorare i cambiamenti nel tempo.
+    </div>
+    """, unsafe_allow_html=True)
+
+# 2. CARICAMENTO & STORICO
 st.markdown('<div class="section-card">', unsafe_allow_html=True)
 c1, c2 = st.columns(2)
-with c1: uploaded_file = st.file_uploader("📂 ZIP Instagram", type="zip")
-with c2: historical_file = st.file_uploader("⏳ Snapshot .insta", type="insta")
+with c1: uploaded_file = st.file_uploader("📂 Carica ZIP Instagram", type="zip")
+with c2: historical_file = st.file_uploader("⏳ Carica Snapshot .insta", type="insta")
 st.markdown('</div>', unsafe_allow_html=True)
 
 if uploaded_file:
@@ -70,62 +89,50 @@ if uploaded_file:
     non_ricambiano = sorted(list(fings - fols))
     fan = sorted(list(fols - fings))
 
-    # --- LOGICA STORICO ---
+    # Logica confronto storico
     if historical_file:
-        old_data = json.load(historical_file)
-        old_fols = set(old_data.get("followers", []))
-        persi = sorted(list(old_fols - fols))
-        if persi:
-            st.error(f"🚨 {len(persi)} utenti ti hanno rimosso il follow!")
-        else:
-            st.success("✅ Nessun nuovo unfollower rispetto allo snapshot.")
+        try:
+            old_data = json.load(historical_file)
+            old_fols = set(old_data.get("followers", []))
+            persi = sorted(list(old_fols - fols))
+            if persi: st.error(f"🚨 ALERT: {len(persi)} utenti ti hanno rimosso!")
+            else: st.success("✅ Nessun nuovo unfollower rilevato.")
+        except: st.warning("Snapshot non valido.")
 
     st.write("---")
     t1, t2, t3 = st.tabs(["📉 UNFOLLOWERS", "👑 FAN (PRO)", "💾 SALVA"])
 
-    # --- FUNZIONE DI SBLOCCO CON TIMER INTEGRATO ---
-    def render_tab_content(data_list, session_key, link, price):
+    # FUNZIONE SBLOCCO (MOBILE FRIENDLY)
+    def render_unlock(data_list, session_key, ad_link):
         if not st.session_state[session_key]:
             st.markdown(f"""
-                <div style="text-align:center; padding:20px;">
-                    <h3>🔒 Contenuto Protetto ({len(data_list)} profili)</h3>
-                    <p style="opacity:0.7;">Scegli come accedere ai dati:</p>
+                <div style="text-align:center; padding:10px;">
+                    <p style="opacity:0.8;">Lista protetta ({len(data_list)} profili)</p>
+                    <a href="https://paypal.me/TUOUSER/0.99" class="premium-btn">SBLOCCA SUBITO 0,99€</a>
+                    <p style="font-size:0.7em; margin:10px 0;">oppure</p>
+                    <a href="{ad_link}" target="_blank" class="ad-btn">1. APRI PUBBLICITÀ</a>
                 </div>
             """, unsafe_allow_html=True)
             
-            pay_col, ad_col = st.columns(2)
-            with pay_col:
-                st.markdown(f'<a href="https://paypal.me/TUOUSER/{price}" target="_blank" style="text-decoration:none;"><button style="width:100%; padding:15px; background:#d4af37; color:black; border-radius:12px; font-weight:bold; border:none; cursor:pointer;">PAGA {price}€</button></a>', unsafe_allow_html=True)
-            
-            with ad_col:
-                if st.button(f"📺 SBLOCCA GRATIS", key="btn_"+session_key):
-                    # Step 1: Apre pubblicità in nuova scheda
-                    components.html(f"<script>window.open('{link}', '_blank');</script>", height=0)
-                    
-                    # Step 2: Avvia timer nella scheda corrente
-                    placeholder = st.empty()
-                    for i in range(30, -1, -1):
-                        with placeholder.container():
-                            st.markdown(f"""
-                                <div class="timer-box">
-                                    <p>SBLOCCO IN CORSO...</p>
-                                    <div class="timer-val">{i}s</div>
-                                    <p style="font-size:0.8em; opacity:0.6;">Interagisci con la pubblicità nell'altra scheda<br>per convalidare l'accesso.</p>
-                                </div>
-                            """, unsafe_allow_html=True)
-                            st.progress((30-i)/30)
-                        time.sleep(1)
-                    st.session_state[session_key] = True
-                    st.rerun()
+            if st.button("2. AVVIA TIMER SBLOCCO", key="timer_"+session_key):
+                placeholder = st.empty()
+                for i in range(30, -1, -1):
+                    with placeholder.container():
+                        st.markdown(f'<div class="timer-val">{i}s</div>', unsafe_allow_html=True)
+                        st.progress((30-i)/30)
+                        st.write("⏳ Verifica visione... Resta su questa pagina.")
+                    time.sleep(1)
+                st.session_state[session_key] = True
+                st.rerun()
         else:
-            st.success("✅ Accesso Autorizzato")
+            st.success("✅ Dati Sbloccati")
             st.dataframe(pd.DataFrame(data_list, columns=["Username"]), use_container_width=True)
 
-    with t1: render_tab_content(non_ricambiano, 'unf_unlocked', LINK_UNFOLLOWERS, "0.99")
-    with t2: render_tab_content(fan, 'fan_unlocked', LINK_FAN_SEGRETI, "0.99")
+    with t1: render_unlock(non_ricambiano, 'unf_unlocked', LINK_UNFOLLOWERS)
+    with t2: render_unlock(fan, 'fan_unlocked', LINK_FAN_SEGRETI)
     with t3:
         snap = {"date": datetime.now().strftime("%Y-%m-%d"), "followers": list(fols)}
-        st.download_button("📥 SCARICA SNAPSHOT PER IL FUTURO", json.dumps(snap), "mio.insta")
+        st.download_button("📥 GENERA SNAPSHOT .INSTA", json.dumps(snap), "mio_profilo.insta")
 
 # BANNER FISSO FOOTER
 st.write("---")
