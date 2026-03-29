@@ -3,10 +3,9 @@ import json
 import zipfile
 import pandas as pd
 
-# 1. Configurazione della pagina (Deve essere la prima istruzione Streamlit)
+# 1. Configurazione della pagina
 st.set_page_config(page_title="InstaChecker Pro", page_icon="🕵️", layout="centered")
 
-# 2. Correzione errore CSS (unsafe_allow_html è il parametro corretto)
 st.markdown("""
     <style>
     .stApp { background-color: #f0f2f6; }
@@ -15,94 +14,82 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 st.title("🕵️ InstaChecker Pro")
-st.info("Carica il tuo file .zip di Instagram per vedere chi non ricambia il follow.")
+st.info("Trascina qui il file .zip che hai scaricato da Instagram.")
 
-# Sidebar per login simulato
+# Sidebar estetica
 with st.sidebar:
-    st.header("Configurazione Account")
-    st.text_input("Username Instagram", placeholder="mario_rossi")
-    st.text_input("Password", type="password", placeholder="••••••••")
-    st.caption("Nota: I dati inseriti qui sopra sono solo grafici e non vengono memorizzati.")
+    st.header("Configurazione")
+    st.text_input("Username Instagram")
+    st.text_input("Password", type="password")
+    st.caption("I dati sono protetti e non vengono salvati.")
 
-# Upload del file ZIP
-uploaded_file = st.file_uploader("Scegli il file .zip scaricato da Instagram", type="zip")
+uploaded_file = st.file_uploader("Carica lo ZIP di Instagram", type="zip")
 
 def extract_names(data):
-    """Estrae i nomi in modo intelligente dai diversi formati JSON"""
+    """Estrae i nomi dai diversi formati JSON di Instagram"""
     names = set()
-    # Caso 1: I dati sono una lista (solitamente followers_1.json)
     if isinstance(data, list):
         for item in data:
             if 'string_list_data' in item and item['string_list_data']:
                 val = item['string_list_data'][0].get('value')
                 if val: names.add(val.lower().strip())
-    # Caso 2: I dati sono un dizionario (solitamente following.json)
     elif isinstance(data, dict):
-        # Cerchiamo dentro la chiave specifica di Instagram
+        # Prova percorso Following standard
         entries = data.get('relationships_following', [])
         for item in entries:
-            # Proviamo a prendere il 'title' (più affidabile per i following)
-            val = item.get('title')
-            if val: 
-                names.add(val.lower().strip())
-            # Se fallisce, proviamo string_list_data
-            elif 'string_list_data' in item and item['string_list_data']:
-                val = item['string_list_data'][0].get('value')
-                if val: names.add(val.lower().strip())
+            val = item.get('title') or (item.get('string_list_data', [{}])[0].get('value') if item.get('string_list_data') else None)
+            if val: names.add(val.lower().strip())
     return names
 
 if uploaded_file:
-    with st.spinner('Analisi in corso... attendi...'):
+    with st.spinner('Scansione profonda dello ZIP in corso...'):
         try:
             with zipfile.ZipFile(uploaded_file, 'r') as z:
                 all_followers = set()
                 all_following = set()
+                file_list = z.namelist()
                 
-                # Scansione automatica di tutti i file nello ZIP
-                for file_info in z.infolist():
-                    fname = file_info.filename.lower()
-                    if fname.endswith('.json'):
-                        if 'follower' in fname:
-                            with z.open(file_info) as f:
+                # Messaggi di log interni per debug
+                found_fo = False
+                found_fi = False
+
+                for path in file_list:
+                    # Cerchiamo i file ignorando le cartelle (prendiamo solo il nome finale)
+                    filename = path.split('/')[-1].lower()
+                    
+                    if filename.endswith('.json'):
+                        if 'follower' in filename:
+                            with z.open(path) as f:
                                 all_followers.update(extract_names(json.load(f)))
-                        elif 'following' in fname:
-                            with z.open(file_info) as f:
+                                found_fo = True
+                        elif 'following' in filename:
+                            with z.open(path) as f:
                                 all_following.update(extract_names(json.load(f)))
+                                found_fi = True
                 
-                if not all_following:
-                    st.warning("Non ho trovato i dati dei 'Following'. Assicurati di aver caricato lo ZIP completo.")
+                if not found_fi or not found_fo:
+                    st.error("⚠️ Attenzione: Non ho trovato i file corretti nello ZIP.")
+                    st.write("Assicurati di aver selezionato il formato **JSON** (non HTML) quando hai richiesto i dati a Instagram.")
+                    st.write(f"File analizzati nello ZIP: {len(file_list)}")
                 else:
-                    # Calcolo della differenza
                     unfollowers = sorted(list(all_following - all_followers))
                     
-                    # Visualizzazione Metriche
                     col1, col2, col3 = st.columns(3)
                     col1.metric("Seguiti", len(all_following))
                     col2.metric("Follower", len(all_followers))
                     col3.metric("Non ricambiano", len(unfollowers))
                     
-                    st.divider()
-                    
                     if unfollowers:
-                        st.subheader("📜 Lista Unfollowers")
-                        # Creazione DataFrame per la tabella
+                        st.subheader("📜 Chi non ti segue più")
                         df = pd.DataFrame(unfollowers, columns=["Username"])
-                        # Aggiungiamo link cliccabili
                         df['Profilo'] = df['Username'].apply(lambda x: f"https://www.instagram.com/{x}")
-                        
                         st.dataframe(df, use_container_width=True)
                         
-                        # Esportazione CSV
                         csv = df.to_csv(index=False).encode('utf-8')
-                        st.download_button(
-                            label="📥 Scarica report CSV",
-                            data=csv,
-                            file_name="unfollowers_report.csv",
-                            mime="text/csv"
-                        )
+                        st.download_button("📥 Scarica Report CSV", csv, "unfollowers.csv", "text/csv")
                     else:
                         st.balloons()
-                        st.success("Tutti gli utenti che segui ti ricambiano il follow!")
+                        st.success("Tutti ricambiano il follow!")
                         
         except Exception as e:
-            st.error(f"Errore durante l'elaborazione dello ZIP: {e}")
+            st.error(f"Errore: {e}")
