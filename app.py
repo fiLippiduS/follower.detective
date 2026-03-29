@@ -43,10 +43,11 @@ def raw_text_extract(text_bytes):
             found.add(clean)
     return found
 
-# --- GESTIONE STATI ---
-if 'last_file_hash' not in st.session_state: st.session_state.last_file_hash = None
+# --- INIZIALIZZAZIONE STATI ---
 if 'unf_unlocked' not in st.session_state: st.session_state.unf_unlocked = False
 if 'fan_unlocked' not in st.session_state: st.session_state.fan_unlocked = False
+if 'last_file_hash' not in st.session_state: st.session_state.last_file_hash = None
+if 'active_timer' not in st.session_state: st.session_state.active_timer = None
 
 # --- DESIGN ---
 st.markdown("""
@@ -56,27 +57,32 @@ st.markdown("""
     .main-container { max-width: 800px; margin: auto; padding: 10px; }
     .section-card { background: #0a0a0a; padding: 20px; border-radius: 20px; border: 1px solid #1a1a1a; margin-bottom: 15px; }
     .guide-box { background: rgba(212, 175, 55, 0.05); border-left: 4px solid #d4af37; padding: 15px; border-radius: 10px; margin-bottom: 20px; font-size: 0.9em; }
-    .timer-val { font-size: 3.5rem; font-weight: 900; color: #d4af37; text-align: center; }
-    .stButton>button { border-radius: 12px !important; font-weight: 800 !important; width: 100% !important; background: #d4af37 !important; color: black !important; height: 55px; border:none; }
+    .timer-val { font-size: 4rem; font-weight: 900; color: #d4af37; text-align: center; }
+    
+    /* Tasto Unificato Mobile-Safe */
+    .smart-btn {
+        display: block; width: 100%; padding: 18px; background: #d4af37; color: black !important; 
+        text-align: center; border-radius: 12px; font-weight: 800; text-decoration: none; border: none; cursor: pointer;
+    }
     </style>
     """, unsafe_allow_html=True)
 
 st.markdown('<div class="main-container">', unsafe_allow_html=True)
 st.markdown("<h1 style='text-align:center; color:#d4af37; margin-bottom:0;'>InstaDetective</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center; opacity:0.5; font-size:0.7em; margin-bottom:30px;'>ULTIMATE SECURITY ANALYTICS</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center; opacity:0.5; font-size:0.7em; margin-bottom:30px;'>PRO DATA ANALYTICS</p>", unsafe_allow_html=True)
 
 # 1. GUIDA FISSA
-st.markdown('<div class="guide-box"><b>📘 ISTRUZIONI:</b> Carica lo ZIP. Se cambi file, lo sblocco si resetta per sicurezza.</div>', unsafe_allow_html=True)
+st.markdown('<div class="guide-box"><b>📖 GUIDA:</b> Carica lo ZIP. Clicca "SBLOCCA GRATIS": si aprirà la pubblicità e il timer partirà automaticamente.</div>', unsafe_allow_html=True)
 
 # 2. CARICAMENTO
 st.markdown('<div class="section-card">', unsafe_allow_html=True)
 c1, c2 = st.columns(2)
-with c1: uploaded_file = st.file_uploader("📂 Carica ZIP Instagram", type="zip")
-with c2: historical_file = st.file_uploader("⏳ Carica Snapshot .insta", type="insta")
+with c1: uploaded_file = st.file_uploader("📂 Archivio ZIP", type="zip")
+with c2: historical_file = st.file_uploader("⏳ Storico .insta", type="insta")
 st.markdown('</div>', unsafe_allow_html=True)
 
 if uploaded_file:
-    # --- LOGICA RESET AUTOMATICO ---
+    # Reset se file nuovo
     current_hash = get_file_hash(uploaded_file.getvalue())
     if st.session_state.last_file_hash != current_hash:
         st.session_state.unf_unlocked = False
@@ -87,54 +93,60 @@ if uploaded_file:
     non_ricambiano = sorted(list(fings - fols))
     fan = sorted(list(fols - fings))
 
-    # Storico
+    # Logica Storico
     if historical_file:
         try:
             old_data = json.load(historical_file)
             old_fols = set(old_data.get("followers", []))
             persi = sorted(list(old_fols - fols))
-            if persi: st.error(f"🚨 ALERT: {len(persi)} utenti ti hanno rimosso!")
+            if persi: st.error(f"🚨 {len(persi)} persone non ti seguono più!")
         except: pass
 
     st.write("---")
     t1, t2, t3 = st.tabs(["📉 UNFOLLOWERS", "👑 FAN (PRO)", "💾 SALVA"])
 
-    # FUNZIONE SBLOCCO UNIFICATA (ONE-CLICK)
+    # --- FUNZIONE SBLOCCO UNIVERSALE ---
     def render_unlock(data_list, session_key, ad_link):
         if not st.session_state[session_key]:
-            st.markdown(f"""
-                <div style="text-align:center; padding:10px;">
-                    <p>Contenuto Protetto ({len(data_list)} profili)</p>
-                    <a href="https://paypal.me/TUOUSER/0.99" target="_blank" style="text-decoration:none;">
-                        <button style="width:100%; padding:12px; background:#d4af37; color:black; border-radius:10px; font-weight:bold; border:none; margin-bottom:15px; cursor:pointer;">SBLOCCA SUBITO 0,99€</button>
-                    </a>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            # IL TASTO MAGICO: Apre link e attiva timer
-            if st.button("📺 GUARDA ADS E SBLOCCA GRATIS", key="oneclick_"+session_key):
-                # Script per aprire pubblicità
-                components.html(f"<script>window.open('{ad_link}', '_blank');</script>", height=0)
+            if st.session_state.active_timer != session_key:
+                st.markdown(f"""
+                    <div style="text-align:center; padding:10px;">
+                        <p>Contenuto Protetto ({len(data_list)} utenti)</p>
+                        <a href="https://paypal.me/TUOUSER/0.99" target="_blank" style="text-decoration:none;">
+                            <button style="width:100%; padding:12px; background:#d4af37; color:black; border-radius:10px; font-weight:bold; border:none; margin-bottom:15px; cursor:pointer;">PAGA 0,99€ (VELOCE)</button>
+                        </a>
+                        <p style="font-size:0.7em; margin-bottom:15px;">OPPURE</p>
+                    </div>
+                """, unsafe_allow_html=True)
                 
-                # Countdown immediato
+                # TASTO IBRIDO: Apre il link (compatibile mobile) e triggera il timer Streamlit
+                if st.button("📺 SBLOCCA GRATIS CON ADS", key="btn_"+session_key):
+                    # Comando Javascript che apre la tab (accettato dai telefoni perché legato al click)
+                    components.html(f"<script>window.open('{ad_link}', '_blank');</script>", height=0)
+                    st.session_state.active_timer = session_key
+                    st.rerun()
+            
+            else:
+                # Esecuzione del Timer
                 placeholder = st.empty()
                 for i in range(30, -1, -1):
                     with placeholder.container():
                         st.markdown(f'<div class="timer-val">{i}s</div>', unsafe_allow_html=True)
                         st.progress((30-i)/30)
-                        st.write("⏳ Analisi in corso... Resta su questa scheda!")
+                        st.info("⏳ Sto convalidando la visione... non chiudere!")
                     time.sleep(1)
                 st.session_state[session_key] = True
+                st.session_state.active_timer = None
                 st.rerun()
         else:
-            st.success("✅ Dati Sbloccati per questo file")
+            st.success("✅ Sbloccato con successo!")
             st.dataframe(pd.DataFrame(data_list, columns=["Username"]), use_container_width=True)
 
     with t1: render_unlock(non_ricambiano, 'unf_unlocked', LINK_UNFOLLOWERS)
     with t2: render_unlock(fan, 'fan_unlocked', LINK_FAN_SEGRETI)
     with t3:
         snap = {"followers": list(fols)}
-        st.download_button("📥 GENERA SNAPSHOT", json.dumps(snap), "mio.insta")
+        st.download_button("📥 SCARICA SNAPSHOT", json.dumps(snap), "mio.insta")
 
 # BANNER FISSO FOOTER
 st.write("---")
