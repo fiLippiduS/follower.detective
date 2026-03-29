@@ -4,63 +4,53 @@ import zipfile
 import pandas as pd
 import time
 
-# --- CONFIGURAZIONE ELITE ---
-st.set_page_config(page_title="InstaDetective Elite", page_icon="💎", layout="wide")
+# Configurazione base
+st.set_page_config(page_title="InstaDetective Elite", page_icon="💎")
 
-# --- CSS AVANZATO ---
+# CSS Semplificato per evitare blocchi
 st.markdown("""
     <style>
-    .stApp {
-        background: linear-gradient(-45deg, #2b5876, #4e4376, #000000);
-        background-size: 400% 400%;
-        animation: gradient 10s ease infinite;
-        color: white;
-    }
-    @keyframes gradient {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
-    }
-    .glass-card {
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 25px;
-        backdrop-filter: blur(20px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        padding: 50px;
-        box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-    }
-    /* Stilizzazione Tabella Risultati */
-    .stDataFrame {
-        border: 1px solid rgba(255,255,255,0.1);
-        border-radius: 15px;
-    }
-    h1 { font-weight: 800; letter-spacing: -1px; }
+    .stApp { background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%); color: white; }
+    .stMarkdown, .stText { color: white !important; }
+    .main-box { background: rgba(0,0,0,0.5); padding: 2rem; border-radius: 15px; }
     </style>
     """, unsafe_allow_html=True)
 
-def get_users_from_zip(zip_file):
-    followers = set()
-    following = set()
-    with zipfile.ZipFile(zip_file, 'r') as z:
-        for filename in z.namelist():
-            if filename.endswith('.json'):
-                if 'followers_1' in filename.lower():
-                    with z.open(filename) as f:
-                        data = json.load(f)
-                        for entry in data:
-                            for item in entry.get('string_list_data', []):
-                                followers.add(item['value'].lower())
-                elif 'following' in filename.lower():
-                    with z.open(filename) as f:
-                        data = json.load(f)
-                        entries = data.get('relationships_following', [])
-                        for entry in entries:
-                            for item in entry.get('string_list_data', []):
-                                following.add(item['value'].lower())
-    return followers, following
-
-# --- UI ---
-st.markdown("<div style='text-align: center; margin-top: 50px;'>", unsafe_allow_html=True)
 st.title("💎 InstaDetective Elite Edition")
 st.write("Analisi crittografica delle relazioni social")
-st.markdown("</div>", unsafe_allow_html=True)
+
+with st.container():
+    st.markdown('<div class="main-box">', unsafe_allow_html=True)
+    
+    # Questo è il componente che deve apparire
+    uploaded_file = st.file_uploader("Carica lo ZIP di Instagram", type="zip")
+    
+    if uploaded_file:
+        progress = st.progress(0)
+        for i in range(100):
+            time.sleep(0.01)
+            progress.progress(i + 1)
+            
+        try:
+            with zipfile.ZipFile(uploaded_file, 'r') as z:
+                # Logica di estrazione semplificata
+                fols = set()
+                fings = set()
+                for n in z.namelist():
+                    if 'followers_1.json' in n:
+                        data = json.load(z.open(n))
+                        for e in data: [fols.add(i['value'].lower()) for i in e['string_list_data']]
+                    if 'following.json' in n:
+                        data = json.load(z.open(n))
+                        for e in data.get('relationships_following', []): [fings.add(i['value'].lower()) for i in e['string_list_data']]
+                
+                if fings:
+                    diff = sorted(list(fings - fols))
+                    st.success(f"Analisi completata! {len(diff)} utenti non ti seguono.")
+                    st.table(pd.DataFrame(diff, columns=["Username"]))
+                else:
+                    st.warning("File JSON non trovati nello ZIP. Controlla il formato.")
+        except Exception as e:
+            st.error(f"Errore: {e}")
+            
+    st.markdown('</div>', unsafe_allow_html=True)
